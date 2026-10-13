@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import ProductCard from "@/components/product-card";
-import { products } from "@/data/products";
+import { useProducts } from "@/components/products-context";
 
 export default function Home() {
+    const { products } = useProducts();
     const featured = products.filter((p) => p.isFeatured);
 
     return (

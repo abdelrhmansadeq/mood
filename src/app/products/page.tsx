@@ -2,11 +2,12 @@
 
 import { useState, useMemo } from "react";
 import ProductCard from "@/components/product-card";
-import { products } from "@/data/products";
+import { useProducts } from "@/components/products-context";
 
 type Category = "all" | "men" | "women";
 
 export default function ProductsPage() {
+    const { products } = useProducts();
     const [category, setCategory] = useState<Category>("all");
     const [searchQuery, setSearchQuery] = useState("");
 
@@ -18,7 +19,7 @@ export default function ProductsPage() {
                 p.nameEn.toLowerCase().includes(searchQuery.toLowerCase());
             return matchCategory && matchSearch;
         });
-    }, [category, searchQuery]);
+    }, [products, category, searchQuery]);
 
     const categories: { value: Category; label: string }[] = [
         { value: "all", label: "الكل" },
@@ -28,7 +29,6 @@ export default function ProductsPage() {
 
     return (
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
-            {/* Header */}
             <div className="text-center mb-12">
                 <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2">
                     Shop
@@ -41,9 +41,7 @@ export default function ProductsPage() {
                 </p>
             </div>
 
-            {/* Filters Bar */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 pb-6 border-b border-charcoal/10">
-                {/* Category Tabs */}
                 <div className="flex items-center gap-2 overflow-x-auto">
                     {categories.map((cat) => (
                         <button
@@ -60,7 +58,6 @@ export default function ProductsPage() {
                     ))}
                 </div>
 
-                {/* Search */}
                 <div className="relative w-full md:w-72">
                     <input
                         type="text"
@@ -83,12 +80,10 @@ export default function ProductsPage() {
                 </div>
             </div>
 
-            {/* Products Count */}
             <p className="text-sm text-muted mb-6">
                 {filteredProducts.length} منتج
             </p>
 
-            {/* Products Grid */}
             {filteredProducts.length > 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
                     {filteredProducts.map((product) => (

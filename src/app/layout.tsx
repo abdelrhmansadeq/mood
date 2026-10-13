@@ -5,6 +5,8 @@ import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import { CartProvider } from "@/components/cart-context";
 import CartDrawer from "@/components/cart-drawer";
+import { ProductsProvider } from "@/components/products-context";
+import { AdminProvider } from "@/components/admin-context";
 
 const inter = Inter({
     subsets: ["latin"],
@@ -37,12 +39,16 @@ export default function RootLayout({
             className={`${inter.variable} ${plexArabic.variable}`}
         >
         <body className="font-arabic bg-cream text-charcoal antialiased">
-        <CartProvider>
-            <Navbar />
-            <CartDrawer />
-            <main className="pt-16 min-h-screen">{children}</main>
-            <Footer />
-        </CartProvider>
+        <ProductsProvider>
+            <AdminProvider>
+                <CartProvider>
+                    <Navbar />
+                    <CartDrawer />
+                    <main className="pt-16 min-h-screen">{children}</main>
+                    <Footer />
+                </CartProvider>
+            </AdminProvider>
+        </ProductsProvider>
         </body>
         </html>
     );
