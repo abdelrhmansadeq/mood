@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAdmin } from "@/components/admin-context";
@@ -64,7 +65,7 @@ export default function AdminProductsPage() {
     };
 
     const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+        e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
     ) => {
         const { name, value, type } = e.target;
         if (type === "checkbox") {
@@ -77,7 +78,7 @@ export default function AdminProductsPage() {
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
         if (editingId) {
             updateProduct(editingId, formData);
@@ -194,7 +195,7 @@ export default function AdminProductsPage() {
 
                 {products.length === 0 && (
                     <div className="p-12 text-center text-muted">
-                        مفيش منتجات. اضغط "إضافة منتج" عشان تبدأ.
+                        مفيش منتجات. اضغط &quot;إضافة منتج&quot; عشان تبدأ.
                     </div>
                 )}
             </div>

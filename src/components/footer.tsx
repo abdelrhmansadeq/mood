@@ -23,9 +23,21 @@ export default function Footer() {
                             روابط سريعة
                         </h4>
                         <ul className="space-y-2 text-sm text-cream/70">
-                            <li><Link href="/products" className="hover:text-gold transition-colors">المنتجات</Link></li>
-                            <li><Link href="/about" className="hover:text-gold transition-colors">من نحن</Link></li>
-                            <li><Link href="/contact" className="hover:text-gold transition-colors">تواصل معنا</Link></li>
+                            <li>
+                                <Link href="/products" className="hover:text-gold transition-colors">
+                                    المنتجات
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/about" className="hover:text-gold transition-colors">
+                                    من نحن
+                                </Link>
+                            </li>
+                            <li>
+                                <Link href="/contact" className="hover:text-gold transition-colors">
+                                    تواصل معنا
+                                </Link>
+                            </li>
                         </ul>
                     </div>
 
@@ -35,9 +47,9 @@ export default function Footer() {
                             تواصل
                         </h4>
                         <ul className="space-y-2 text-sm text-cream/70">
-                            <li>support@mood.com</li>
-                            <li>+20 100 000 0000</li>
-                            <li>القاهرة، مصر</li>
+                            <li dir="ltr" className="text-right">abdelrhman@gmail.com</li>
+                            <li dir="ltr" className="text-right">01014766903</li>
+                            <li>دمياط الجديدة، مصر</li>
                         </ul>
                     </div>
                 </div>
@@ -48,8 +60,12 @@ export default function Footer() {
                         © {year} Mood. جميع الحقوق محفوظة.
                     </p>
                     <div className="flex gap-4 text-xs text-cream/50">
-                        <Link href="/privacy" className="hover:text-gold">سياسة الخصوصية</Link>
-                        <Link href="/terms" className="hover:text-gold">الشروط والأحكام</Link>
+                        <Link href="/privacy" className="hover:text-gold transition-colors">
+                            سياسة الخصوصية
+                        </Link>
+                        <Link href="/terms" className="hover:text-gold transition-colors">
+                            الشروط والأحكام
+                        </Link>
                     </div>
                 </div>
             </div>
