@@ -1,79 +1,105 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { products as seedProducts, type Product } from "@/data/products";
+import type { Product } from "@/data/products";
+import {
+    fetchProducts,
+    addProductToDB,
+    updateProductInDB,
+    deleteProductFromDB,
+    resetProductsInDB,
+} from "@/lib/products-api";
 
 type ProductsContextType = {
     products: Product[];
-    addProduct: (product: Omit<Product, "id">) => void;
-    updateProduct: (id: number, updates: Partial<Product>) => void;
-    deleteProduct: (id: number) => void;
-    resetProducts: () => void;
+    isLoading: boolean;
+    error: string | null;
+    addProduct: (product: Omit<Product, "id">) => Promise<void>;
+    updateProduct: (id: number, updates: Partial<Product>) => Promise<void>;
+    deleteProduct: (id: number) => Promise<void>;
+    resetProducts: () => Promise<void>;
+    refreshProducts: () => Promise<void>;
 };
 
 const ProductsContext = createContext<ProductsContextType | null>(null);
-const STORAGE_KEY = "mood-products";
 
 export function ProductsProvider({ children }: { children: ReactNode }) {
-    const [products, setProducts] = useState<Product[]>(seedProducts);
-    const [mounted, setMounted] = useState(false);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const loadProducts = async () => {
+        try {
+            setIsLoading(true);
+            setError(null);
+            const data = await fetchProducts();
+            setProducts(data);
+        } catch (e) {
+            console.error("Failed to load products:", e);
+            setError("حصلت مشكلة في تحميل المنتجات");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
-        let initialProducts = seedProducts;
-        try {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    initialProducts = parsed;
-                }
-            }
-        } catch (e) {
-            console.error("Failed to load products", e);
-        }
-        setProducts(initialProducts);
-        setMounted(true);
+        loadProducts();
     }, []);
 
-    useEffect(() => {
-        if (!mounted) return;
+    const addProduct = async (product: Omit<Product, "id">) => {
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
+            const newProduct = await addProductToDB(product);
+            setProducts((prev) => [...prev, newProduct]);
         } catch (e) {
-            console.error("Failed to save products", e);
+            console.error("Failed to add product:", e);
+            throw e;
         }
-    }, [products, mounted]);
-
-    const addProduct = (product: Omit<Product, "id">) => {
-        setProducts((prev) => {
-            const newId = prev.length > 0 ? Math.max(...prev.map((p) => p.id)) + 1 : 1;
-            return [...prev, { ...product, id: newId }];
-        });
     };
 
-    const updateProduct = (id: number, updates: Partial<Product>) => {
-        setProducts((prev) =>
-            prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
-        );
+    const updateProduct = async (id: number, updates: Partial<Product>) => {
+        try {
+            const updated = await updateProductInDB(id, updates);
+            setProducts((prev) => prev.map((p) => (p.id === id ? updated : p)));
+        } catch (e) {
+            console.error("Failed to update product:", e);
+            throw e;
+        }
     };
 
-    const deleteProduct = (id: number) => {
-        setProducts((prev) => prev.filter((p) => p.id !== id));
+    const deleteProduct = async (id: number) => {
+        try {
+            await deleteProductFromDB(id);
+            setProducts((prev) => prev.filter((p) => p.id !== id));
+        } catch (e) {
+            console.error("Failed to delete product:", e);
+            throw e;
+        }
     };
 
-    const resetProducts = () => setProducts(seedProducts);
-
-    // قبل ما يـ mount، بنستخدم seedProducts عشان نتطابق مع السيرفر
-    const activeProducts = mounted ? products : seedProducts;
+    const resetProducts = async () => {
+        try {
+            setIsLoading(true);
+            await resetProductsInDB();
+            await loadProducts();
+        } catch (e) {
+            console.error("Failed to reset products:", e);
+            setError("حصلت مشكلة في استرجاع المنتجات");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
         <ProductsContext.Provider
             value={{
-                products: activeProducts,
+                products,
+                isLoading,
+                error,
                 addProduct,
                 updateProduct,
                 deleteProduct,
                 resetProducts,
+                refreshProducts: loadProducts,
             }}
         >
             {children}
