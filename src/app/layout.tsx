@@ -4,10 +4,12 @@ import "./globals.css";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import WhatsAppButton from "@/components/whatsapp-button";
+import AIAssistant from "@/components/ai-assistant";
 import { CartProvider } from "@/components/cart-context";
 import CartDrawer from "@/components/cart-drawer";
 import { ProductsProvider } from "@/components/products-context";
 import { AdminProvider } from "@/components/admin-context";
+import { WishlistProvider } from "@/components/wishlist-context";
 
 const inter = Inter({
     subsets: ["latin"],
@@ -42,13 +44,16 @@ export default function RootLayout({
         <body className="font-arabic bg-cream text-charcoal antialiased">
         <ProductsProvider>
             <AdminProvider>
-                <CartProvider>
-                    <Navbar />
-                    <CartDrawer />
-                    <WhatsAppButton />
-                    <main className="pt-24 min-h-screen">{children}</main>
-                    <Footer />
-                </CartProvider>
+                <WishlistProvider>
+                    <CartProvider>
+                        <Navbar />
+                        <CartDrawer />
+                        <WhatsAppButton />
+                        <AIAssistant />
+                        <main className="pt-24 min-h-screen">{children}</main>
+                        <Footer />
+                    </CartProvider>
+                </WishlistProvider>
             </AdminProvider>
         </ProductsProvider>
         </body>
