@@ -3,6 +3,7 @@ import { Inter, IBM_Plex_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
+import WhatsAppButton from "@/components/whatsapp-button";
 import { CartProvider } from "@/components/cart-context";
 import CartDrawer from "@/components/cart-drawer";
 import { ProductsProvider } from "@/components/products-context";
@@ -44,7 +45,8 @@ export default function RootLayout({
                 <CartProvider>
                     <Navbar />
                     <CartDrawer />
-                    <main className="pt-16 min-h-screen">{children}</main>
+                    <WhatsAppButton />
+                    <main className="pt-24 min-h-screen">{children}</main>
                     <Footer />
                 </CartProvider>
             </AdminProvider>

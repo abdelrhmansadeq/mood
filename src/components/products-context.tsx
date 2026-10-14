@@ -12,16 +12,14 @@ type ProductsContextType = {
 };
 
 const ProductsContext = createContext<ProductsContextType | null>(null);
-
 const STORAGE_KEY = "mood-products";
 
 export function ProductsProvider({ children }: { children: ReactNode }) {
     const [products, setProducts] = useState<Product[]>(seedProducts);
-    const [loaded, setLoaded] = useState(false);
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         let initialProducts = seedProducts;
-
         try {
             const stored = localStorage.getItem(STORAGE_KEY);
             if (stored) {
@@ -33,21 +31,18 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
         } catch (e) {
             console.error("Failed to load products", e);
         }
-
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setProducts(initialProducts);
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setLoaded(true);
+        setMounted(true);
     }, []);
 
     useEffect(() => {
-        if (!loaded) return;
+        if (!mounted) return;
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
         } catch (e) {
             console.error("Failed to save products", e);
         }
-    }, [products, loaded]);
+    }, [products, mounted]);
 
     const addProduct = (product: Omit<Product, "id">) => {
         setProducts((prev) => {
@@ -68,9 +63,18 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
 
     const resetProducts = () => setProducts(seedProducts);
 
+    // قبل ما يـ mount، بنستخدم seedProducts عشان نتطابق مع السيرفر
+    const activeProducts = mounted ? products : seedProducts;
+
     return (
         <ProductsContext.Provider
-            value={{ products, addProduct, updateProduct, deleteProduct, resetProducts }}
+            value={{
+                products: activeProducts,
+                addProduct,
+                updateProduct,
+                deleteProduct,
+                resetProducts,
+            }}
         >
             {children}
         </ProductsContext.Provider>

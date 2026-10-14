@@ -4,27 +4,58 @@ import { useState, useMemo } from "react";
 import ProductCard from "@/components/product-card";
 import { useProducts } from "@/components/products-context";
 
-type Category = "all" | "men" | "women";
+type Category = "all" | "men" | "women" | "kids";
+type SortOption = "featured" | "price-asc" | "price-desc" | "name-asc";
 
 export default function ProductsPage() {
     const { products } = useProducts();
     const [category, setCategory] = useState<Category>("all");
     const [searchQuery, setSearchQuery] = useState("");
+    const [sortBy, setSortBy] = useState<SortOption>("featured");
 
     const filteredProducts = useMemo(() => {
-        return products.filter((p) => {
+        const filtered = products.filter((p) => {
             const matchCategory = category === "all" || p.category === category;
             const matchSearch =
                 p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 p.nameEn.toLowerCase().includes(searchQuery.toLowerCase());
             return matchCategory && matchSearch;
         });
-    }, [products, category, searchQuery]);
+
+        const sorted = [...filtered];
+        switch (sortBy) {
+            case "price-asc":
+                sorted.sort((a, b) => a.price - b.price);
+                break;
+            case "price-desc":
+                sorted.sort((a, b) => b.price - a.price);
+                break;
+            case "name-asc":
+                sorted.sort((a, b) => a.name.localeCompare(b.name, "ar"));
+                break;
+            case "featured":
+            default:
+                sorted.sort((a, b) => {
+                    if (a.isFeatured && !b.isFeatured) return -1;
+                    if (!a.isFeatured && b.isFeatured) return 1;
+                    return 0;
+                });
+        }
+        return sorted;
+    }, [products, category, searchQuery, sortBy]);
 
     const categories: { value: Category; label: string }[] = [
         { value: "all", label: "الكل" },
         { value: "men", label: "رجالي" },
         { value: "women", label: "نسائي" },
+        { value: "kids", label: "أطفال" },
+    ];
+
+    const sortOptions: { value: SortOption; label: string }[] = [
+        { value: "featured", label: "المميزة أولاً" },
+        { value: "price-asc", label: "السعر: من الأقل للأعلى" },
+        { value: "price-desc", label: "السعر: من الأعلى للأقل" },
+        { value: "name-asc", label: "الاسم (أ - ي)" },
     ];
 
     return (
@@ -58,25 +89,39 @@ export default function ProductsPage() {
                     ))}
                 </div>
 
-                <div className="relative w-full md:w-72">
-                    <input
-                        type="text"
-                        placeholder="ابحث عن منتج..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full px-4 py-2.5 ps-10 rounded-full border border-charcoal/15 bg-white text-sm text-charcoal placeholder:text-muted focus:outline-none focus:border-gold transition-colors"
-                    />
-                    <svg
-                        className="absolute top-1/2 -translate-y-1/2 start-3.5 w-4 h-4 text-muted"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth="2"
+                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <div className="relative flex-1 sm:flex-none sm:w-64">
+                        <input
+                            type="text"
+                            placeholder="ابحث عن منتج..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full px-4 py-2.5 ps-10 rounded-full border border-charcoal/15 bg-white text-sm text-charcoal placeholder:text-muted focus:outline-none focus:border-gold transition-colors"
+                        />
+                        <svg
+                            className="absolute top-1/2 -translate-y-1/2 start-3.5 w-4 h-4 text-muted"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                        >
+                            <circle cx="11" cy="11" r="8" />
+                            <path d="m21 21-4.35-4.35" />
+                        </svg>
+                    </div>
+
+                    <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as SortOption)}
+                        className="px-4 py-2.5 rounded-full border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold transition-colors cursor-pointer"
                     >
-                        <circle cx="11" cy="11" r="8" />
-                        <path d="m21 21-4.35-4.35" />
-                    </svg>
+                        {sortOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                            </option>
+                        ))}
+                    </select>
                 </div>
             </div>
 
@@ -97,6 +142,7 @@ export default function ProductsPage() {
                         onClick={() => {
                             setCategory("all");
                             setSearchQuery("");
+                            setSortBy("featured");
                         }}
                         className="text-gold text-sm font-medium hover:underline"
                     >
