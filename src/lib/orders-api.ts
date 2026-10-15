@@ -138,12 +138,14 @@ export async function fetchOrderById(orderId: number): Promise<Order | null> {
         .from("orders")
         .select("*")
         .eq("id", orderId)
-        .single();
+        .maybeSingle();
 
     if (error) {
         console.error("Error fetching order:", error);
         return null;
     }
+
+    if (!data) return null;
 
     return toOrder(data as SupabaseOrder);
 }
@@ -205,6 +207,37 @@ export async function updateOrderStatus(
         return {};
     } catch (e) {
         console.error("updateOrderStatus error:", e);
+        return { error: "حصلت مشكلة في الاتصال" };
+    }
+}
+
+
+export async function cancelOrder(orderId: number): Promise<{ error?: string }> {
+    try {
+        const {
+            data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session) {
+            return { error: "لازم تسجل دخول الأول" };
+        }
+
+        const res = await fetch(`/api/orders/${orderId}/cancel`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${session.access_token}`,
+            },
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            return { error: data.error || "حصلت مشكلة" };
+        }
+
+        return {};
+    } catch (e) {
+        console.error("cancelOrder error:", e);
         return { error: "حصلت مشكلة في الاتصال" };
     }
 }

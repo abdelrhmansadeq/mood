@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAdmin } from "@/components/admin-context";
 import { useToast } from "@/components/toast-context";
+import { useRealtimeAllOrders } from "@/hooks/use-realtime-all-orders";
 import {
     fetchAllOrders,
     updateOrderStatus,
@@ -30,6 +31,10 @@ export default function AdminOrdersPage() {
     const [filter, setFilter] = useState<Order["status"] | "all">("all");
     const [updatingId, setUpdatingId] = useState<number | null>(null);
 
+    // ✅ Realtime - بيستمع لأي تغيير في الطلبات
+    const lastRealtimeEvent = useRealtimeAllOrders();
+
+    // Load initial orders
     useEffect(() => {
         if (!isLoggedIn) return;
         fetchAllOrders()
@@ -37,6 +42,15 @@ export default function AdminOrdersPage() {
             .catch((e) => console.error(e))
             .finally(() => setIsLoading(false));
     }, [isLoggedIn]);
+
+    // ✅ إعادة تحميل الطلبات لما يجي event جديد من Realtime
+    useEffect(() => {
+        if (!lastRealtimeEvent || !isLoggedIn) return;
+
+        fetchAllOrders()
+            .then(setOrders)
+            .catch((e) => console.error(e));
+    }, [lastRealtimeEvent, isLoggedIn]);
 
     const filteredOrders =
         filter === "all" ? orders : orders.filter((o) => o.status === filter);

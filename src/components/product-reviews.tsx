@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { FormEvent, ChangeEvent } from "react";
 import Link from "next/link";
 import { useAuth } from "./auth-context";
 import { useToast } from "./toast-context";
 import {
     fetchProductReviews,
     fetchUserReview,
+    checkUserPurchased,
     createReview,
     updateReview,
     deleteReview,
@@ -23,6 +25,7 @@ export default function ProductReviews({ productId }: Props) {
     const { showToast } = useToast();
     const [reviews, setReviews] = useState<Review[]>([]);
     const [userReview, setUserReview] = useState<Review | null>(null);
+    const [hasPurchased, setHasPurchased] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
 
@@ -32,32 +35,50 @@ export default function ProductReviews({ productId }: Props) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
 
-    const loadData = async () => {
-        try {
-            const allReviews = await fetchProductReviews(productId);
-            setReviews(allReviews);
-
-            if (user) {
-                const myReview = await fetchUserReview(productId, user.id);
-                setUserReview(myReview);
-                if (myReview) {
-                    setRating(myReview.rating);
-                    setComment(myReview.comment || "");
-                }
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     useEffect(() => {
-        loadData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        let isMounted = true;
+
+        const loadData = async () => {
+            try {
+                const allReviews = await fetchProductReviews(productId);
+                if (!isMounted) return;
+                setReviews(allReviews);
+
+                if (user) {
+                    const [myReview, purchased] = await Promise.all([
+                        fetchUserReview(productId, user.id),
+                        checkUserPurchased(user.id, productId),
+                    ]);
+                    if (!isMounted) return;
+
+                    setUserReview(myReview);
+                    setHasPurchased(purchased);
+
+                    if (myReview) {
+                        setRating(myReview.rating);
+                        setComment(myReview.comment || "");
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        };
+
+        void loadData();
+
+        return () => {
+            isMounted = false;
+        };
     }, [productId, user]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const reloadReviews = async () => {
+        const allReviews = await fetchProductReviews(productId);
+        setReviews(allReviews);
+    };
+
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!user) return;
 
@@ -65,7 +86,8 @@ export default function ProductReviews({ productId }: Props) {
         setIsSubmitting(true);
 
         try {
-            const userName = user.user_metadata?.full_name || user.email || "عميل Mood";
+            const userName =
+                user.user_metadata?.full_name || user.email || "عميل Mood";
 
             if (userReview) {
                 const updated = await updateReview(userReview.id, { rating, comment });
@@ -101,7 +123,7 @@ export default function ProductReviews({ productId }: Props) {
 
         try {
             await deleteReview(userReview.id);
-            setReviews((prev) => prev.filter((r) => r.id !== userReview.id));
+            await reloadReviews();
             setUserReview(null);
             setRating(5);
             setComment("");
@@ -192,14 +214,51 @@ export default function ProductReviews({ productId }: Props) {
                             </p>
                         )}
                     </div>
+                ) : !hasPurchased ? (
+                    <div className="bg-white rounded-lg border border-charcoal/10 p-6 text-center">
+                        <div className="w-12 h-12 rounded-full bg-charcoal/5 flex items-center justify-center mx-auto mb-3">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="22"
+                                height="22"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="#6B6B6B"
+                                strokeWidth="1.8"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                                <line x1="3" y1="6" x2="21" y2="6" />
+                                <path d="M16 10a4 4 0 0 1-8 0" />
+                            </svg>
+                        </div>
+                        <p className="text-sm font-medium text-charcoal mb-1">
+                            لازم تشتري المنتج عشان تقيّمه
+                        </p>
+                        <p className="text-xs text-muted mb-4">
+                            بنقبل التقييمات من العملاء اللي اشتروا المنتج فعلاً
+                        </p>
+                        <Link
+                            href="/products"
+                            className="inline-block border border-charcoal/20 hover:border-charcoal text-charcoal font-medium px-5 py-2 rounded-md transition-colors text-sm"
+                        >
+                            تسوق دلوقتي
+                        </Link>
+                    </div>
                 ) : (
                     <form
                         onSubmit={handleSubmit}
                         className="bg-white rounded-lg border border-charcoal/10 p-6"
                     >
-                        <h3 className="text-base font-semibold text-charcoal mb-4">
-                            {userReview ? "عدّل تقييمك" : "أضف تقييمك"}
-                        </h3>
+                        <div className="flex items-center gap-2 mb-4">
+                            <h3 className="text-base font-semibold text-charcoal">
+                                {userReview ? "عدّل تقييمك" : "أضف تقييمك"}
+                            </h3>
+                            <span className="inline-flex items-center gap-1 bg-success/10 text-success text-xs font-medium px-2 py-0.5 rounded-full">
+                ✓ عميل مشتري
+              </span>
+                        </div>
 
                         <div className="mb-5">
                             <label className="block text-sm font-medium text-charcoal mb-2">
@@ -228,7 +287,9 @@ export default function ProductReviews({ productId }: Props) {
                             </label>
                             <textarea
                                 value={comment}
-                                onChange={(e) => setComment(e.target.value)}
+                                onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                                    setComment(e.target.value)
+                                }
                                 rows={4}
                                 placeholder="شاركنا رأيك في المنتج..."
                                 className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold transition-colors resize-none"

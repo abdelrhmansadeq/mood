@@ -66,6 +66,23 @@ export async function fetchUserReview(
     return data ? toReview(data as SupabaseReview) : null;
 }
 
+export async function checkUserPurchased(
+    userId: string,
+    productId: number
+): Promise<boolean> {
+    const { data, error } = await supabase.rpc("user_has_purchased", {
+        p_user_id: userId,
+        p_product_id: productId,
+    });
+
+    if (error) {
+        console.error("Error checking purchase:", error);
+        return false;
+    }
+
+    return data === true;
+}
+
 export async function createReview(params: {
     productId: number;
     userId: string;
