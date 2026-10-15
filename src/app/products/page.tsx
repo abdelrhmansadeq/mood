@@ -1,18 +1,20 @@
 "use client";
-import { ProductGridSkeleton } from "@/components/skeleton";
 
 import { useState, useMemo } from "react";
 import ProductCard from "@/components/product-card";
 import { useProducts } from "@/components/products-context";
+import { ProductGridSkeleton } from "@/components/skeleton";
 
 type Category = "all" | "men" | "women" | "kids";
 type SortOption = "featured" | "price-asc" | "price-desc" | "name-asc";
+type PriceRange = "all" | "under-200" | "200-500" | "500-800" | "above-800";
 
 export default function ProductsPage() {
     const { products, isLoading } = useProducts();
     const [category, setCategory] = useState<Category>("all");
     const [searchQuery, setSearchQuery] = useState("");
     const [sortBy, setSortBy] = useState<SortOption>("featured");
+    const [priceRange, setPriceRange] = useState<PriceRange>("all");
 
     const filteredProducts = useMemo(() => {
         const filtered = products.filter((p) => {
@@ -20,7 +22,27 @@ export default function ProductsPage() {
             const matchSearch =
                 p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 p.nameEn.toLowerCase().includes(searchQuery.toLowerCase());
-            return matchCategory && matchSearch;
+
+            let matchPrice = true;
+            switch (priceRange) {
+                case "under-200":
+                    matchPrice = p.price < 200;
+                    break;
+                case "200-500":
+                    matchPrice = p.price >= 200 && p.price <= 500;
+                    break;
+                case "500-800":
+                    matchPrice = p.price > 500 && p.price <= 800;
+                    break;
+                case "above-800":
+                    matchPrice = p.price > 800;
+                    break;
+                case "all":
+                default:
+                    matchPrice = true;
+            }
+
+            return matchCategory && matchSearch && matchPrice;
         });
 
         const sorted = [...filtered];
@@ -43,7 +65,7 @@ export default function ProductsPage() {
                 });
         }
         return sorted;
-    }, [products, category, searchQuery, sortBy]);
+    }, [products, category, searchQuery, sortBy, priceRange]);
 
     const categories: { value: Category; label: string }[] = [
         { value: "all", label: "الكل" },
@@ -59,9 +81,21 @@ export default function ProductsPage() {
         { value: "name-asc", label: "الاسم (أ - ي)" },
     ];
 
+    const priceOptions: { value: PriceRange; label: string }[] = [
+        { value: "all", label: "كل الأسعار" },
+        { value: "under-200", label: "أقل من 200 ج.م" },
+        { value: "200-500", label: "200 - 500 ج.م" },
+        { value: "500-800", label: "500 - 800 ج.م" },
+        { value: "above-800", label: "أكتر من 800 ج.م" },
+    ];
+
+    const hasActiveFilters =
+        category !== "all" || searchQuery !== "" || priceRange !== "all";
+
     return (
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
-            <div className="text-center mb-12">
+            {/* Header */}
+            <div className="text-center mb-12 animate-fade-up">
                 <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2">
                     Shop
                 </p>
@@ -73,8 +107,10 @@ export default function ProductsPage() {
                 </p>
             </div>
 
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 pb-6 border-b border-charcoal/10">
-                <div className="flex items-center gap-2 overflow-x-auto">
+            {/* Filters */}
+            <div className="mb-8 pb-6 border-b border-charcoal/10">
+                {/* Categories */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-4">
                     {categories.map((cat) => (
                         <button
                             key={cat.value}
@@ -90,8 +126,10 @@ export default function ProductsPage() {
                     ))}
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                    <div className="relative flex-1 sm:flex-none sm:w-64">
+                {/* Search + Sort + Price */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {/* Search */}
+                    <div className="relative sm:col-span-2 md:col-span-1">
                         <input
                             type="text"
                             placeholder="ابحث عن منتج..."
@@ -112,6 +150,7 @@ export default function ProductsPage() {
                         </svg>
                     </div>
 
+                    {/* Sort */}
                     <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value as SortOption)}
@@ -123,15 +162,45 @@ export default function ProductsPage() {
                             </option>
                         ))}
                     </select>
+
+                    {/* Price Range */}
+                    <select
+                        value={priceRange}
+                        onChange={(e) => setPriceRange(e.target.value as PriceRange)}
+                        className="px-4 py-2.5 rounded-full border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold transition-colors cursor-pointer"
+                    >
+                        {priceOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                            </option>
+                        ))}
+                    </select>
                 </div>
             </div>
 
+            {/* Result Count */}
             {!isLoading && (
-                <p className="text-sm text-muted mb-6">
-                    {filteredProducts.length} منتج
-                </p>
+                <div className="flex items-center justify-between mb-6">
+                    <p className="text-sm text-muted">
+                        {filteredProducts.length} منتج
+                    </p>
+                    {hasActiveFilters && (
+                        <button
+                            onClick={() => {
+                                setCategory("all");
+                                setSearchQuery("");
+                                setSortBy("featured");
+                                setPriceRange("all");
+                            }}
+                            className="text-sm text-gold hover:underline font-medium"
+                        >
+                            امسح كل الفلاتر
+                        </button>
+                    )}
+                </div>
             )}
 
+            {/* Grid */}
             {isLoading ? (
                 <ProductGridSkeleton count={8} />
             ) : filteredProducts.length > 0 ? (
@@ -157,6 +226,7 @@ export default function ProductsPage() {
                             setCategory("all");
                             setSearchQuery("");
                             setSortBy("featured");
+                            setPriceRange("all");
                         }}
                         className="text-gold text-sm font-medium hover:underline"
                     >

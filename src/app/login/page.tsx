@@ -18,7 +18,7 @@ export default function LoginPage() {
         if (user) router.push("/account");
     }, [user, router]);
 
-    const handleSubmit = async (e: FormEvent) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError("");
         setIsLoading(true);
@@ -34,19 +34,21 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-[calc(100vh-6rem)] flex items-center justify-center px-6 py-12">
+        <div className="min-h-[calc(100vh-6rem)] flex items-center justify-center px-6 py-12 animate-fade-in">
             <div className="w-full max-w-md">
-                <div className="text-center mb-8">
+                <div className="text-center mb-8 animate-fade-up">
                     <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2">
                         Welcome Back
                     </p>
-                    <h1 className="text-3xl font-bold text-charcoal mb-2">تسجيل الدخول</h1>
+                    <h1 className="text-3xl font-bold text-charcoal mb-2">
+                        تسجيل الدخول
+                    </h1>
                     <p className="text-muted text-sm">أهلاً بيك في Mood تاني</p>
                 </div>
 
                 <form
                     onSubmit={handleSubmit}
-                    className="bg-white rounded-lg border border-charcoal/10 p-6 space-y-5"
+                    className="bg-white rounded-lg border border-charcoal/10 p-6 space-y-5 animate-fade-up"
                 >
                     <div>
                         <label className="block text-sm font-medium text-charcoal mb-2">
@@ -63,9 +65,17 @@ export default function LoginPage() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-charcoal mb-2">
-                            الباسورد
-                        </label>
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="block text-sm font-medium text-charcoal">
+                                الباسورد
+                            </label>
+                            <Link
+                                href="/forgot-password"
+                                className="text-xs text-gold hover:underline font-medium"
+                            >
+                                نسيت الباسورد؟
+                            </Link>
+                        </div>
                         <input
                             type="password"
                             required

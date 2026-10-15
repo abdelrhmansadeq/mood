@@ -206,33 +206,33 @@ export default function AdminProductsPage() {
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-12">
             {/* Header */}
-            <div className="mb-8">
+            <div className="mb-6 md:mb-8">
                 <Link href="/admin/dashboard" className="text-sm text-muted hover:text-gold">
                     ← رجوع للوحة التحكم
                 </Link>
             </div>
 
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 md:mb-8">
                 <div>
                     <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2">
                         Products
                     </p>
-                    <h1 className="text-3xl md:text-4xl font-bold text-charcoal">
+                    <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-charcoal">
                         إدارة المنتجات
                     </h1>
                 </div>
                 <button
                     onClick={openAdd}
-                    className="bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-medium px-5 py-2.5 rounded-md transition-colors text-sm"
+                    className="bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-medium px-5 py-2.5 rounded-md transition-colors text-sm self-start md:self-auto"
                 >
                     + إضافة منتج
                 </button>
             </div>
 
-            {/* Products Table */}
-            <div className="bg-white rounded-lg border border-charcoal/10 overflow-hidden">
+            {/* ===== DESKTOP: Table ===== */}
+            <div className="hidden md:block bg-white rounded-lg border border-charcoal/10 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead className="bg-charcoal/5 border-b border-charcoal/10">
@@ -361,11 +361,147 @@ export default function AdminProductsPage() {
                         </tbody>
                     </table>
                 </div>
-
                 {products.length === 0 && (
                     <div className="p-12 text-center text-muted">
                         مفيش منتجات. اضغط &quot;إضافة منتج&quot; عشان تبدأ.
                     </div>
+                )}
+            </div>
+
+            {/* ===== MOBILE: Cards ===== */}
+            <div className="md:hidden space-y-3">
+                {products.length === 0 ? (
+                    <div className="p-8 text-center text-muted bg-white rounded-lg border border-charcoal/10">
+                        مفيش منتجات. اضغط &quot;إضافة منتج&quot; عشان تبدأ.
+                    </div>
+                ) : (
+                    products.map((p) => {
+                        const sizes = p.sizes || emptySizes;
+                        const colors = p.colors || [];
+                        const total = calcTotal(sizes, colors);
+                        return (
+                            <div
+                                key={p.id}
+                                className="bg-white rounded-lg border border-charcoal/10 p-4"
+                            >
+                                {/* Top: Image + Info */}
+                                <div className="flex gap-3 mb-3">
+                                    <div className="w-16 h-20 rounded-md overflow-hidden bg-cream flex-shrink-0">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                            src={p.image}
+                                            alt={p.name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <p className="font-medium text-charcoal text-sm truncate">
+                                                    {p.name}
+                                                </p>
+                                                <p className="text-xs text-muted truncate">{p.nameEn}</p>
+                                            </div>
+                                            {p.isFeatured && (
+                                                <span className="text-gold text-sm flex-shrink-0">★</span>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-muted mt-1">
+                                            {p.category === "men"
+                                                ? "رجالي"
+                                                : p.category === "women"
+                                                    ? "نسائي"
+                                                    : "أطفال"}
+                                        </p>
+                                        <div className="flex items-center gap-2 mt-2">
+                      <span className="text-sm font-bold text-charcoal">
+                        {p.price} ج.م
+                      </span>
+                                            <span
+                                                className={`text-xs px-2 py-0.5 rounded-full ${
+                                                    total === 0
+                                                        ? "bg-error/10 text-error"
+                                                        : total < 10
+                                                            ? "bg-gold/20 text-gold-dark"
+                                                            : "bg-success/10 text-success"
+                                                }`}
+                                            >
+                        {total === 0 ? "نفد" : `${total} متوفر`}
+                      </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Variants */}
+                                {colors.length > 0 ? (
+                                    <div className="mb-3 pb-3 border-t border-charcoal/10 pt-3">
+                                        <p className="text-xs text-muted mb-2">الألوان:</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {colors.map((c, i) => {
+                                                const colorTotal = Object.values(
+                                                    c.sizes || emptySizes
+                                                ).reduce((a, b) => a + b, 0);
+                                                return (
+                                                    <div
+                                                        key={i}
+                                                        className="flex items-center gap-1.5 bg-cream rounded-full px-2 py-1"
+                                                    >
+                            <span
+                                className="w-3 h-3 rounded-full border border-charcoal/20"
+                                style={{ backgroundColor: c.hex }}
+                            />
+                                                        <span className="text-xs text-charcoal">
+                              {c.name}
+                            </span>
+                                                        <span className="text-xs text-muted">
+                              ({colorTotal})
+                            </span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="mb-3 pb-3 border-t border-charcoal/10 pt-3">
+                                        <p className="text-xs text-muted mb-2">المقاسات:</p>
+                                        <div className="flex flex-wrap gap-1">
+                                            {SIZE_KEYS.map((size) => {
+                                                const qty = sizes[size] || 0;
+                                                return (
+                                                    <span
+                                                        key={size}
+                                                        className={`text-xs px-2 py-0.5 rounded ${
+                                                            qty === 0
+                                                                ? "bg-charcoal/5 text-charcoal/30"
+                                                                : "bg-charcoal/10 text-charcoal"
+                                                        }`}
+                                                    >
+                            {size}: {qty}
+                          </span>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Actions */}
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => openEdit(p)}
+                                        className="flex-1 bg-charcoal hover:bg-gold text-cream hover:text-charcoal text-xs font-medium py-2 rounded-md transition-colors"
+                                    >
+                                        تعديل
+                                    </button>
+                                    <button
+                                        onClick={() => setConfirmDeleteId(p.id)}
+                                        className="flex-1 border border-error/30 text-error hover:bg-error/10 text-xs font-medium py-2 rounded-md transition-colors"
+                                    >
+                                        حذف
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                    })
                 )}
             </div>
 
