@@ -43,7 +43,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
             const stored = localStorage.getItem(STORAGE_KEY);
             if (stored) {
                 const parsed = JSON.parse(stored);
-                if (Array.isArray(parsed)) setItems(parsed);
+                if (Array.isArray(parsed)) {
+                    // eslint-disable-next-line react-hooks/set-state-in-effect
+                    setItems(parsed);
+                }
             }
         } catch (e) {
             console.error("Failed to load cart", e);
@@ -62,12 +65,40 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }, [items, mounted]);
 
     // Clean stale items (products that no longer exist)
+    // Sync cart with products:
+// - نشيل المنتجات المحذوفة
+// - نحدّث السعر والاسم لو اتغيروا
     useEffect(() => {
         if (!mounted || products.length === 0) return;
-        const validIds = new Set(products.map((p) => p.id));
-        const filtered = items.filter((item) => validIds.has(item.productId));
-        if (filtered.length !== items.length) {
-            setItems(filtered);
+
+        const productMap = new Map(products.map((p) => [p.id, p]));
+        let hasChanges = false;
+
+        const updated = items
+            .filter((item) => productMap.has(item.productId))
+            .map((item) => {
+                const product = productMap.get(item.productId)!;
+
+                // لو السعر أو الاسم اتغير، نحدّثهم
+                if (
+                    item.price !== product.price ||
+                    item.name !== product.name ||
+                    item.nameEn !== product.nameEn
+                ) {
+                    hasChanges = true;
+                    return {
+                        ...item,
+                        price: product.price,
+                        name: product.name,
+                        nameEn: product.nameEn,
+                    };
+                }
+                return item;
+            });
+
+        if (updated.length !== items.length || hasChanges) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setItems(updated);
         }
     }, [products, mounted, items]);
 
