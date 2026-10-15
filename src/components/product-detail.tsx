@@ -1,4 +1,5 @@
 "use client";
+import ProductReviews from "./product-reviews";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -220,6 +221,8 @@ export default function ProductDetail({ product, related }: Props) {
                     </div>
                 </section>
             )}
+            {/* Reviews */}
+            <ProductReviews productId={product.id} />
         </div>
     );
 }
