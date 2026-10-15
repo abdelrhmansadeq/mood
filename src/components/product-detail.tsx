@@ -25,7 +25,6 @@ export default function ProductDetail({ product, related }: Props) {
 
     const { addItem, openCart } = useCart();
 
-    // المقاسات المتاحة حسب اللون المختار
     const currentSizes: ProductSizes = hasColors
         ? product.colors[selectedColorIndex]?.sizes || defaultSizes
         : product.sizes || defaultSizes;
@@ -42,18 +41,17 @@ export default function ProductDetail({ product, related }: Props) {
         ? product.colors[selectedColorIndex]?.hex
         : null;
 
-    // أول مقاس متاح
     const firstAvailableSize = SIZES.find((s) => (currentSizes[s] || 0) > 0);
 
-    // لازم نضبط المقاس لما اللون يتغير
     useEffect(() => {
         if (firstAvailableSize && (currentSizes[selectedSize] || 0) === 0) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSelectedSize(firstAvailableSize);
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setQuantity(1);
         }
     }, [selectedColorIndex, firstAvailableSize, currentSizes, selectedSize]);
 
-    // إجمالي المخزون الحالي
     const totalCurrentStock = hasColors
         ? product.colors.reduce((total, color) => {
             return (
@@ -93,10 +91,8 @@ export default function ProductDetail({ product, related }: Props) {
     const handleColorChange = (idx: number) => {
         setSelectedColorIndex(idx);
         setQuantity(1);
-        // الـ useEffect هيتولى ضبط المقاس
     };
 
-    // ستوك اللون المختار
     const colorTotalStock = hasColors
         ? Object.values(currentSizes).reduce((a, b) => a + b, 0)
         : totalCurrentStock;
@@ -104,7 +100,7 @@ export default function ProductDetail({ product, related }: Props) {
     return (
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
             {/* Breadcrumbs */}
-            <nav className="text-sm text-muted mb-8">
+            <nav className="text-sm text-muted mb-8 animate-fade-in">
                 <Link href="/" className="hover:text-gold">الرئيسية</Link>
                 <span className="mx-2">/</span>
                 <Link href="/products" className="hover:text-gold">المنتجات</Link>
@@ -116,7 +112,7 @@ export default function ProductDetail({ product, related }: Props) {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 mb-20">
                 {/* Image */}
                 <div
-                    className="relative w-full rounded-lg overflow-hidden bg-cream"
+                    className="relative w-full rounded-lg overflow-hidden bg-cream animate-fade-in"
                     style={{ aspectRatio: "3 / 4" }}
                 >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -136,7 +132,7 @@ export default function ProductDetail({ product, related }: Props) {
                 </div>
 
                 {/* Info */}
-                <div className="flex flex-col">
+                <div className="flex flex-col animate-fade-up">
                     {/* Category */}
                     <p className="text-gold text-xs font-medium tracking-widest uppercase mb-3">
                         {product.category === "men"
@@ -239,9 +235,9 @@ export default function ProductDetail({ product, related }: Props) {
                                         key={size}
                                         onClick={() => !disabled && handleSizeChange(size)}
                                         disabled={disabled}
-                                        className={`relative w-14 h-12 rounded-md text-sm font-medium border transition-colors ${
+                                        className={`relative w-14 h-12 rounded-md text-sm font-medium border transition-all ${
                                             isSelected
-                                                ? "border-charcoal bg-charcoal text-cream"
+                                                ? "border-charcoal bg-charcoal text-cream scale-105"
                                                 : disabled
                                                     ? "border-charcoal/10 text-charcoal/30 cursor-not-allowed line-through"
                                                     : "border-charcoal/20 text-charcoal hover:border-charcoal"
@@ -279,7 +275,7 @@ export default function ProductDetail({ product, related }: Props) {
                         <button
                             onClick={handleAddToCart}
                             disabled={!canAddToCart}
-                            className="flex-1 bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-charcoal disabled:hover:text-cream"
+                            className="flex-1 bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-charcoal disabled:hover:text-cream"
                         >
                             {isOutOfStock
                                 ? "نفد المخزون"
@@ -298,7 +294,7 @@ export default function ProductDetail({ product, related }: Props) {
 
                     {/* Feedback */}
                     {addedMessage && (
-                        <div className="bg-success/10 text-success border border-success/30 rounded-md p-3 text-sm text-center mb-6 mt-2">
+                        <div className="bg-success/10 text-success border border-success/30 rounded-md p-3 text-sm text-center mb-6 mt-2 animate-fade-down">
                             ✓ تمت الإضافة للسلة
                         </div>
                     )}
@@ -315,35 +311,45 @@ export default function ProductDetail({ product, related }: Props) {
             {/* Related Products */}
             {related.length > 0 && (
                 <section>
-                    <h2 className="text-2xl font-bold text-charcoal mb-6">منتجات مشابهة</h2>
+                    <h2 className="text-2xl font-bold text-charcoal mb-6 animate-fade-up">
+                        منتجات مشابهة
+                    </h2>
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                        {related.map((p) => (
-                            <Link
+                        {related.map((p, idx) => (
+                            <div
                                 key={p.id}
-                                href={`/products/${p.id}`}
-                                className="group block bg-white rounded-lg overflow-hidden border border-charcoal/5 hover:border-gold/30 transition-all hover:shadow-lg"
+                                className="animate-fade-up opacity-0"
+                                style={{
+                                    animationDelay: `${idx * 80}ms`,
+                                    animationFillMode: "forwards",
+                                }}
                             >
-                                <div
-                                    className="relative w-full overflow-hidden bg-cream"
-                                    style={{ aspectRatio: "3 / 4" }}
+                                <Link
+                                    href={`/products/${p.id}`}
+                                    className="group block bg-white rounded-lg overflow-hidden border border-charcoal/5 hover:border-gold/30 transition-all hover:shadow-lg"
                                 >
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img
-                                        src={p.image}
-                                        alt={p.name}
-                                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                    />
-                                </div>
-                                <div className="p-4">
-                                    <h3 className="text-sm font-medium text-charcoal mb-1 group-hover:text-gold transition-colors">
-                                        {p.name}
-                                    </h3>
-                                    <p className="text-xs text-muted mb-2">{p.nameEn}</p>
-                                    <p className="text-base font-semibold text-charcoal">
-                                        {p.price} <span className="text-xs">ج.م</span>
-                                    </p>
-                                </div>
-                            </Link>
+                                    <div
+                                        className="relative w-full overflow-hidden bg-cream"
+                                        style={{ aspectRatio: "3 / 4" }}
+                                    >
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                            src={p.image}
+                                            alt={p.name}
+                                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                        />
+                                    </div>
+                                    <div className="p-4">
+                                        <h3 className="text-sm font-medium text-charcoal mb-1 group-hover:text-gold transition-colors">
+                                            {p.name}
+                                        </h3>
+                                        <p className="text-xs text-muted mb-2">{p.nameEn}</p>
+                                        <p className="text-base font-semibold text-charcoal">
+                                            {p.price} <span className="text-xs">ج.م</span>
+                                        </p>
+                                    </div>
+                                </Link>
+                            </div>
                         ))}
                     </div>
                 </section>

@@ -3,9 +3,10 @@
 import Link from "next/link";
 import ProductCard from "@/components/product-card";
 import { useProducts } from "@/components/products-context";
+import { ProductGridSkeleton } from "@/components/skeleton";
 
 export default function Home() {
-    const { products } = useProducts();
+    const { products, isLoading } = useProducts();
     const featured = products.filter((p) => p.isFeatured);
 
     return (
@@ -21,7 +22,7 @@ export default function Home() {
                 <div className="absolute inset-0 bg-charcoal/50" />
 
                 <div className="relative max-w-7xl mx-auto px-6 lg:px-8 w-full">
-                    <div className="max-w-xl">
+                    <div className="max-w-xl animate-fade-up">
                         <p className="text-gold text-sm font-medium tracking-widest mb-4 uppercase">
                             Mood — الأناقة تبدأ من هنا
                         </p>
@@ -58,8 +59,15 @@ export default function Home() {
                             { title: "شحن مجاني", desc: "للطلبات أكثر من 500 ج.م" },
                             { title: "إرجاع مجاني", desc: "خلال 14 يوم من الاستلام" },
                             { title: "دعم 24/7", desc: "فريقنا جاهز لمساعدتك" },
-                        ].map((f) => (
-                            <div key={f.title} className="text-center">
+                        ].map((f, idx) => (
+                            <div
+                                key={f.title}
+                                className="text-center animate-fade-up opacity-0"
+                                style={{
+                                    animationDelay: `${idx * 100}ms`,
+                                    animationFillMode: "forwards",
+                                }}
+                            >
                                 <h3 className="text-base font-semibold text-charcoal mb-1">
                                     {f.title}
                                 </h3>
@@ -74,7 +82,7 @@ export default function Home() {
             <section className="py-20">
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
                     <div className="flex items-end justify-between mb-10">
-                        <div>
+                        <div className="animate-fade-up">
                             <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2">
                                 Featured
                             </p>
@@ -90,11 +98,28 @@ export default function Home() {
                         </Link>
                     </div>
 
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                        {featured.map((product) => (
-                            <ProductCard key={product.id} product={product} />
-                        ))}
-                    </div>
+                    {isLoading ? (
+                        <ProductGridSkeleton count={4} />
+                    ) : featured.length > 0 ? (
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                            {featured.map((product, idx) => (
+                                <div
+                                    key={product.id}
+                                    className="animate-fade-up opacity-0"
+                                    style={{
+                                        animationDelay: `${idx * 80}ms`,
+                                        animationFillMode: "forwards",
+                                    }}
+                                >
+                                    <ProductCard product={product} />
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-center text-muted py-12">
+                            مفيش منتجات مميزة حالياً.
+                        </p>
+                    )}
 
                     <div className="md:hidden text-center mt-8">
                         <Link

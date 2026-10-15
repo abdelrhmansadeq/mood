@@ -33,7 +33,7 @@ export default function DashboardPage() {
     return (
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
             {/* Header */}
-            <div className="flex items-center justify-between mb-10">
+            <div className="flex items-center justify-between mb-10 animate-fade-up">
                 <div>
                     <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2">
                         Dashboard
@@ -55,10 +55,14 @@ export default function DashboardPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-10">
-                {stats.map((s) => (
+                {stats.map((s, idx) => (
                     <div
                         key={s.label}
-                        className="bg-white rounded-lg border border-charcoal/10 p-5"
+                        className="bg-white rounded-lg border border-charcoal/10 p-5 animate-fade-up opacity-0"
+                        style={{
+                            animationDelay: `${idx * 80}ms`,
+                            animationFillMode: "forwards",
+                        }}
                     >
                         <p className="text-xs text-muted mb-2">{s.label}</p>
                         <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
@@ -70,7 +74,8 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Link
                     href="/admin/dashboard/products"
-                    className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-colors"
+                    className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up opacity-0"
+                    style={{ animationDelay: "400ms", animationFillMode: "forwards" }}
                 >
                     <h3 className="text-lg font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors">
                         إدارة المنتجات
@@ -82,7 +87,8 @@ export default function DashboardPage() {
 
                 <Link
                     href="/admin/dashboard/orders"
-                    className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-colors"
+                    className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up opacity-0"
+                    style={{ animationDelay: "480ms", animationFillMode: "forwards" }}
                 >
                     <h3 className="text-lg font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors">
                         الطلبات
@@ -94,7 +100,8 @@ export default function DashboardPage() {
 
                 <Link
                     href="/products"
-                    className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-colors"
+                    className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up opacity-0"
+                    style={{ animationDelay: "560ms", animationFillMode: "forwards" }}
                 >
                     <h3 className="text-lg font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors">
                         عرض المتجر

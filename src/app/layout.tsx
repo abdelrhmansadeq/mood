@@ -5,6 +5,7 @@ import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import WhatsAppButton from "@/components/whatsapp-button";
 import AIAssistant from "@/components/ai-assistant";
+import MobileNav from "@/components/mobile-nav";
 import { CartProvider } from "@/components/cart-context";
 import CartDrawer from "@/components/cart-drawer";
 import { ProductsProvider } from "@/components/products-context";
@@ -52,8 +53,11 @@ export default function RootLayout({
                             <CartDrawer />
                             <WhatsAppButton />
                             <AIAssistant />
-                            <main className="pt-24 min-h-screen">{children}</main>
+                            <main className="pt-24 pb-20 md:pb-0 min-h-screen">
+                                {children}
+                            </main>
                             <Footer />
+                            <MobileNav />
                         </CartProvider>
                     </WishlistProvider>
                 </AdminProvider>
