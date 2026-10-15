@@ -7,24 +7,40 @@ import { useAdmin } from "@/components/admin-context";
 
 export default function AdminLoginPage() {
     const router = useRouter();
-    const { isLoggedIn, login } = useAdmin();
+    const { isLoggedIn, isLoading, login } = useAdmin();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        if (isLoggedIn) router.push("/admin/dashboard");
-    }, [isLoggedIn, router]);
-
-    const handleSubmit = (e: FormEvent) => {
-        e.preventDefault();
-        const success = login(email, password);
-        if (success) {
+        if (!isLoading && isLoggedIn) {
             router.push("/admin/dashboard");
+        }
+    }, [isLoggedIn, isLoading, router]);
+
+    const handleSubmit = async (e: FormEvent) => {
+        e.preventDefault();
+        setError("");
+        setIsSubmitting(true);
+
+        const result = await login(email, password);
+
+        if (result.error) {
+            setError(result.error);
+            setIsSubmitting(false);
         } else {
-            setError("الإيميل أو الباسورد غلط");
+            router.push("/admin/dashboard");
         }
     };
+
+    if (isLoading) {
+        return (
+            <div className="min-h-[calc(100vh-6rem)] flex items-center justify-center">
+                <p className="text-muted">جاري التحميل...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-[calc(100vh-6rem)] flex items-center justify-center px-6 py-12">
@@ -55,7 +71,7 @@ export default function AdminLoginPage() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold transition-colors"
-                            placeholder="admin@mood.com"
+                            placeholder="admin@example.com"
                         />
                     </div>
 
@@ -81,14 +97,11 @@ export default function AdminLoginPage() {
 
                     <button
                         type="submit"
-                        className="w-full bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors"
+                        disabled={isSubmitting}
+                        className="w-full bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors disabled:opacity-50"
                     >
-                        تسجيل الدخول
+                        {isSubmitting ? "جاري التحقق..." : "تسجيل الدخول"}
                     </button>
-
-                    <p className="text-xs text-muted text-center pt-2 border-t border-charcoal/10">
-                        للتجربة: admin@mood.com / admin123
-                    </p>
                 </form>
             </div>
         </div>

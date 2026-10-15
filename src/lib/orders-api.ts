@@ -63,7 +63,6 @@ function toOrder(row: SupabaseOrder): Order {
 }
 
 export async function createOrder(params: {
-    userId: string;
     fullName: string;
     phone: string;
     city: string;
@@ -72,9 +71,21 @@ export async function createOrder(params: {
     items: OrderItem[];
 }): Promise<{ order?: Order; error?: string }> {
     try {
+        // ✅ ناخد الـ session الحالي عشان نبعت الـ token
+        const {
+            data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session) {
+            return { error: "لازم تسجل دخول الأول" };
+        }
+
         const res = await fetch("/api/orders/create", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${session.access_token}`,
+            },
             body: JSON.stringify(params),
         });
 
@@ -138,15 +149,62 @@ export async function fetchOrderById(orderId: number): Promise<Order | null> {
 }
 
 export async function fetchAllOrders(): Promise<Order[]> {
-    const { data, error } = await supabase
-        .from("orders")
-        .select("*")
-        .order("created_at", { ascending: false });
+    // ناخد الـ session
+    const {
+        data: { session },
+    } = await supabase.auth.getSession();
 
-    if (error) {
-        console.error("Error fetching all orders:", error);
-        throw error;
+    if (!session) {
+        throw new Error("لازم تسجل دخول الأول");
     }
 
-    return (data as SupabaseOrder[]).map(toOrder);
+    const res = await fetch("/api/admin/orders", {
+        headers: {
+            Authorization: `Bearer ${session.access_token}`,
+        },
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+        throw new Error(data.error || "فشل تحميل الطلبات");
+    }
+
+    return (data.orders as SupabaseOrder[]).map(toOrder);
+}
+
+export async function updateOrderStatus(
+    orderId: number,
+    status: Order["status"]
+): Promise<{ error?: string }> {
+    try {
+        // ناخد الـ session
+        const {
+            data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session) {
+            return { error: "لازم تسجل دخول الأول" };
+        }
+
+        const res = await fetch(`/api/admin/orders/${orderId}`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ status }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            return { error: data.error || "حصلت مشكلة" };
+        }
+
+        return {};
+    } catch (e) {
+        console.error("updateOrderStatus error:", e);
+        return { error: "حصلت مشكلة في الاتصال" };
+    }
 }

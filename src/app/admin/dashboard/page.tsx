@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAdmin } from "@/components/admin-context";
@@ -8,14 +7,8 @@ import { useProducts } from "@/components/products-context";
 
 export default function DashboardPage() {
     const router = useRouter();
-    const { isLoggedIn, logout } = useAdmin();
+    const { logout } = useAdmin();
     const { products } = useProducts();
-
-    useEffect(() => {
-        if (!isLoggedIn) router.push("/admin");
-    }, [isLoggedIn, router]);
-
-    if (!isLoggedIn) return null;
 
     const menCount = products.filter((p) => p.category === "men").length;
     const womenCount = products.filter((p) => p.category === "women").length;
@@ -43,8 +36,8 @@ export default function DashboardPage() {
                     </h1>
                 </div>
                 <button
-                    onClick={() => {
-                        logout();
+                    onClick={async () => {
+                        await logout();
                         router.push("/admin");
                     }}
                     className="text-sm text-muted hover:text-error transition-colors"

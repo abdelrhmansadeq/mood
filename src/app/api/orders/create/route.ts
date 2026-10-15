@@ -13,7 +13,6 @@ type OrderItem = {
 };
 
 type RequestBody = {
-    userId: string;
     fullName: string;
     phone: string;
     city: string;
@@ -39,14 +38,40 @@ type SupabaseProduct = {
 export async function POST(request: Request) {
     try {
         const body: RequestBody = await request.json();
-        const { userId, fullName, phone, city, address, notes, items } = body;
+        const { fullName, phone, city, address, notes, items } = body;
 
-        if (!userId || !items || items.length === 0) {
+        // ✅ نقرا الـ token من الـ Header
+        const authHeader = request.headers.get("authorization");
+        const token = authHeader?.replace("Bearer ", "");
+
+        if (!token) {
+            return NextResponse.json(
+                { error: "لازم تسجل دخول الأول" },
+                { status: 401 }
+            );
+        }
+
+        // نتحقق من التوكن باستخدام supabaseAdmin
+        const {
+            data: { user: authUser },
+            error: authError,
+        } = await supabaseAdmin.auth.getUser(token);
+
+        if (authError || !authUser) {
+            return NextResponse.json(
+                { error: "لازم تسجل دخول الأول" },
+                { status: 401 }
+            );
+        }
+
+        if (!items || items.length === 0) {
             return NextResponse.json(
                 { error: "بيانات ناقصة" },
                 { status: 400 }
             );
         }
+
+        const userId = authUser.id;
 
         // 1) نجيب المنتجات من الداتابيز
         const productIds = items.map((i) => i.productId);
@@ -78,7 +103,6 @@ export async function POST(request: Request) {
             const hasColors = product.colors && product.colors.length > 0;
 
             if (hasColors) {
-                // نشوف اللون
                 const color = product.colors.find((c) => c.name === item.color);
                 if (!color) {
                     return NextResponse.json(
@@ -96,7 +120,6 @@ export async function POST(request: Request) {
                     );
                 }
             } else {
-                // مفيش ألوان - نستخدم sizes العادي
                 const sizeStock = product.sizes?.[item.size] || 0;
                 if (sizeStock < item.quantity) {
                     return NextResponse.json(
@@ -162,7 +185,7 @@ export async function POST(request: Request) {
             }
 
             if (rpcError || !success) {
-                // rollback: نرجّع كل اللي خصمناه
+                // rollback
                 for (const deducted of deductedItems) {
                     if (deducted.hasColors) {
                         await supabaseAdmin.rpc("increase_product_color_stock", {
@@ -181,9 +204,7 @@ export async function POST(request: Request) {
                 }
 
                 return NextResponse.json(
-                    {
-                        error: `المنتج "${item.name}" خلص من المخزون`,
-                    },
+                    { error: `المنتج "${item.name}" خلص من المخزون` },
                     { status: 400 }
                 );
             }

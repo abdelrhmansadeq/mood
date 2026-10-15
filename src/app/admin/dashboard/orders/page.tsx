@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAdmin } from "@/components/admin-context";
-import { fetchAllOrders, type Order } from "@/lib/orders-api";
+import {
+    fetchAllOrders,
+    updateOrderStatus,
+    type Order,
+} from "@/lib/orders-api";
 
 const STATUS_OPTIONS: {
     value: Order["status"];
@@ -19,15 +22,11 @@ const STATUS_OPTIONS: {
 ];
 
 export default function AdminOrdersPage() {
-    const router = useRouter();
     const { isLoggedIn } = useAdmin();
     const [orders, setOrders] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [filter, setFilter] = useState<Order["status"] | "all">("all");
-
-    useEffect(() => {
-        if (!isLoggedIn) router.push("/admin");
-    }, [isLoggedIn, router]);
+    const [updatingId, setUpdatingId] = useState<number | null>(null);
 
     useEffect(() => {
         if (!isLoggedIn) return;
@@ -36,8 +35,6 @@ export default function AdminOrdersPage() {
             .catch((e) => console.error(e))
             .finally(() => setIsLoading(false));
     }, [isLoggedIn]);
-
-    if (!isLoggedIn) return null;
 
     const filteredOrders =
         filter === "all" ? orders : orders.filter((o) => o.status === filter);
@@ -51,23 +48,17 @@ export default function AdminOrdersPage() {
         setOrders((prev) =>
             prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
         );
+        setUpdatingId(orderId);
 
-        try {
-            const res = await fetch(`/api/admin/orders/${orderId}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: newStatus }),
-            });
+        const result = await updateOrderStatus(orderId, newStatus);
 
-            if (!res.ok) {
-                throw new Error("فشل التحديث");
-            }
-        } catch (e) {
-            console.error(e);
+        if (result.error) {
             // Rollback
             setOrders(previousOrders);
-            alert("حصلت مشكلة في تحديث الحالة. حاول تاني.");
+            alert(result.error);
         }
+
+        setUpdatingId(null);
     };
 
     return (
@@ -181,7 +172,8 @@ export default function AdminOrdersPage() {
                                                     e.target.value as Order["status"]
                                                 )
                                             }
-                                            className="px-3 py-1.5 rounded-md border border-charcoal/15 bg-white text-xs text-charcoal focus:outline-none focus:border-gold cursor-pointer"
+                                            disabled={updatingId === order.id}
+                                            className="px-3 py-1.5 rounded-md border border-charcoal/15 bg-white text-xs text-charcoal focus:outline-none focus:border-gold cursor-pointer disabled:opacity-50 disabled:cursor-wait"
                                         >
                                             {STATUS_OPTIONS.map((opt) => (
                                                 <option key={opt.value} value={opt.value}>
