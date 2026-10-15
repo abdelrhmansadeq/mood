@@ -1,30 +1,55 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import type { FormEvent } from "react";
 import { useCart } from "@/components/cart-context";
+import { useAuth } from "@/components/auth-context";
+import { createOrder } from "@/lib/orders-api";
 
 type FormData = {
     fullName: string;
     phone: string;
-    email: string;
     city: string;
     address: string;
     notes: string;
 };
 
 export default function CheckoutPage() {
+    const router = useRouter();
     const { items, totalPrice, clearCart } = useCart();
+    const { user, isLoading: authLoading } = useAuth();
+
     const [formData, setFormData] = useState<FormData>({
         fullName: "",
         phone: "",
-        email: "",
         city: "",
         address: "",
         notes: "",
     });
     const [submitted, setSubmitted] = useState(false);
     const [orderNumber, setOrderNumber] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState("");
+
+    // Pre-fill from user data
+    useEffect(() => {
+        if (user) {
+            setFormData((prev) => ({
+                ...prev,
+                fullName: user.user_metadata?.full_name || "",
+                phone: user.user_metadata?.phone || "",
+            }));
+        }
+    }, [user]);
+
+    // Redirect to login if not logged in
+    useEffect(() => {
+        if (!authLoading && !user) {
+            router.push("/login");
+        }
+    }, [user, authLoading, router]);
 
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -32,31 +57,71 @@ export default function CheckoutPage() {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const shipping = totalPrice >= 500 ? 0 : 50;
+    const finalTotal = totalPrice + shipping;
+
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
-        const num = "MOOD-" + Math.floor(100000 + Math.random() * 900000);
-        setOrderNumber(num);
-        setSubmitted(true);
-        clearCart();
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        setError("");
+
+        if (!user) {
+            setError("لازم تسجل دخول الأول");
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            const order = await createOrder({
+                userId: user.id,
+                fullName: formData.fullName,
+                phone: formData.phone,
+                city: formData.city,
+                address: formData.address,
+                notes: formData.notes,
+                subtotal: totalPrice,
+                shipping,
+                total: finalTotal,
+                items: items.map((item) => ({
+                    productId: item.productId,
+                    name: item.name,
+                    nameEn: item.nameEn,
+                    price: item.price,
+                    image: item.image,
+                    size: item.size,
+                    color: item.color,
+                    quantity: item.quantity,
+                })),
+            });
+
+            setOrderNumber(order.orderNumber);
+            setSubmitted(true);
+            clearCart();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        } catch (e) {
+            console.error("Order error:", e);
+            setError("حصلت مشكلة في حفظ الطلب. حاول تاني.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
+
+    if (authLoading) {
+        return (
+            <div className="min-h-[calc(100vh-6rem)] flex items-center justify-center">
+                <p className="text-muted">جاري التحميل...</p>
+            </div>
+        );
+    }
+
+    if (!user) return null;
 
     // Success Screen
     if (submitted) {
         return (
             <div className="max-w-2xl mx-auto px-6 py-20 text-center">
                 <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-6">
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="40"
-                        height="40"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#10B981"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="20 6 9 17 4 12" />
                     </svg>
                 </div>
@@ -70,18 +135,18 @@ export default function CheckoutPage() {
                     <p className="text-xs text-muted mb-1">رقم الطلب</p>
                     <p className="text-2xl font-bold text-gold">{orderNumber}</p>
                 </div>
-                <div className="flex justify-center gap-4">
+                <div className="flex justify-center gap-4 flex-wrap">
                     <Link
-                        href="/products"
+                        href="/account/orders"
                         className="inline-block bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold px-6 py-3 rounded-md transition-colors"
                     >
-                        متابعة التسوق
+                        طلباتي
                     </Link>
                     <Link
-                        href="/"
+                        href="/products"
                         className="inline-block border border-charcoal/20 hover:border-charcoal text-charcoal font-medium px-6 py-3 rounded-md transition-colors"
                     >
-                        الصفحة الرئيسية
+                        متابعة التسوق
                     </Link>
                 </div>
             </div>
@@ -108,10 +173,8 @@ export default function CheckoutPage() {
         );
     }
 
-    // Checkout Form
     return (
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
-            {/* Header */}
             <div className="mb-10">
                 <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2">
                     Checkout
@@ -123,7 +186,6 @@ export default function CheckoutPage() {
 
             <form onSubmit={handleSubmit}>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                    {/* Shipping Form */}
                     <div className="lg:col-span-2 space-y-5">
                         <h2 className="text-lg font-semibold text-charcoal mb-4">
                             بيانات الشحن
@@ -141,7 +203,6 @@ export default function CheckoutPage() {
                                     value={formData.fullName}
                                     onChange={handleChange}
                                     className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold transition-colors"
-                                    placeholder="محمد أحمد"
                                 />
                             </div>
 
@@ -156,23 +217,8 @@ export default function CheckoutPage() {
                                     value={formData.phone}
                                     onChange={handleChange}
                                     className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold transition-colors"
-                                    placeholder="+20 100 000 0000"
                                 />
                             </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-charcoal mb-2">
-                                الإيميل (اختياري)
-                            </label>
-                            <input
-                                type="email"
-                                name="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold transition-colors"
-                                placeholder="you@example.com"
-                            />
                         </div>
 
                         <div>
@@ -215,19 +261,16 @@ export default function CheckoutPage() {
                                 onChange={handleChange}
                                 rows={2}
                                 className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold transition-colors resize-none"
-                                placeholder="أي تعليمات خاصة بالتوصيل"
                             />
                         </div>
                     </div>
 
-                    {/* Order Summary */}
                     <div className="lg:col-span-1">
                         <div className="bg-white rounded-lg border border-charcoal/10 p-6 sticky top-24">
                             <h2 className="text-lg font-semibold text-charcoal mb-5">
                                 ملخص الطلب
                             </h2>
 
-                            {/* Items */}
                             <div className="space-y-4 mb-5 max-h-72 overflow-y-auto">
                                 {items.map((item) => (
                                     <div
@@ -257,7 +300,6 @@ export default function CheckoutPage() {
                                 ))}
                             </div>
 
-                            {/* Totals */}
                             <div className="border-t border-charcoal/10 pt-5 space-y-2 text-sm">
                                 <div className="flex justify-between text-muted">
                                     <span>المجموع الفرعي</span>
@@ -265,22 +307,26 @@ export default function CheckoutPage() {
                                 </div>
                                 <div className="flex justify-between text-muted">
                                     <span>الشحن</span>
-                                    <span>{totalPrice >= 500 ? "مجاني" : "50 ج.م"}</span>
+                                    <span>{shipping === 0 ? "مجاني" : `${shipping} ج.م`}</span>
                                 </div>
                                 <div className="flex justify-between text-base font-bold text-charcoal pt-3 border-t border-charcoal/10">
                                     <span>الإجمالي</span>
-                                    <span>
-                    {totalPrice >= 500 ? totalPrice : totalPrice + 50} ج.م
-                  </span>
+                                    <span>{finalTotal} ج.م</span>
                                 </div>
                             </div>
 
-                            {/* Submit */}
+                            {error && (
+                                <div className="mt-4 bg-error/10 text-error border border-error/30 rounded-md p-3 text-sm">
+                                    {error}
+                                </div>
+                            )}
+
                             <button
                                 type="submit"
-                                className="w-full mt-6 bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors"
+                                disabled={isSubmitting}
+                                className="w-full mt-6 bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors disabled:opacity-50"
                             >
-                                تأكيد الطلب
+                                {isSubmitting ? "جاري إرسال الطلب..." : "تأكيد الطلب"}
                             </button>
                             <p className="text-xs text-muted text-center mt-3">
                                 الدفع عند الاستلام

@@ -1,94 +1,108 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAdmin } from "@/components/admin-context";
+import { useProducts } from "@/components/products-context";
 
-export default function AdminLoginPage() {
+export default function DashboardPage() {
     const router = useRouter();
-    const { isLoggedIn, login } = useAdmin();
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
+    const { isLoggedIn, logout } = useAdmin();
+    const { products } = useProducts();
 
     useEffect(() => {
-        if (isLoggedIn) router.push("/admin/dashboard");
+        if (!isLoggedIn) router.push("/admin");
     }, [isLoggedIn, router]);
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const success = login(email, password);
-        if (success) {
-            router.push("/admin/dashboard");
-        } else {
-            setError("الإيميل أو الباسورد غلط");
-        }
-    };
+    if (!isLoggedIn) return null;
+
+    const menCount = products.filter((p) => p.category === "men").length;
+    const womenCount = products.filter((p) => p.category === "women").length;
+    const kidsCount = products.filter((p) => p.category === "kids").length;
+    const featuredCount = products.filter((p) => p.isFeatured).length;
+
+    const stats = [
+        { label: "إجمالي المنتجات", value: products.length, color: "text-charcoal" },
+        { label: "رجالي", value: menCount, color: "text-charcoal" },
+        { label: "نسائي", value: womenCount, color: "text-charcoal" },
+        { label: "أطفال", value: kidsCount, color: "text-charcoal" },
+        { label: "منتجات مميزة", value: featuredCount, color: "text-gold" },
+    ];
 
     return (
-        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-6 py-12">
-            <div className="w-full max-w-md">
-                <div className="text-center mb-8">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-10">
+                <div>
                     <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2">
-                        Admin Panel
+                        Dashboard
                     </p>
-                    <h1 className="text-3xl font-bold text-charcoal mb-2">
-                        تسجيل دخول الأدمن
+                    <h1 className="text-3xl md:text-4xl font-bold text-charcoal">
+                        لوحة التحكم
                     </h1>
-                    <p className="text-muted text-sm">
-                        لوحة التحكم في متجر Mood
-                    </p>
                 </div>
-
-                <form
-                    onSubmit={handleSubmit}
-                    className="bg-white rounded-lg border border-charcoal/10 p-6 space-y-5"
+                <button
+                    onClick={() => {
+                        logout();
+                        router.push("/admin");
+                    }}
+                    className="text-sm text-muted hover:text-error transition-colors"
                 >
-                    <div>
-                        <label className="block text-sm font-medium text-charcoal mb-2">
-                            الإيميل
-                        </label>
-                        <input
-                            type="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold transition-colors"
-                            placeholder="admin@mood.com"
-                        />
-                    </div>
+                    تسجيل خروج
+                </button>
+            </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-charcoal mb-2">
-                            الباسورد
-                        </label>
-                        <input
-                            type="password"
-                            required
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold transition-colors"
-                            placeholder="••••••••"
-                        />
-                    </div>
-
-                    {error && (
-                        <div className="bg-error/10 text-error border border-error/30 rounded-md p-3 text-sm">
-                            {error}
-                        </div>
-                    )}
-
-                    <button
-                        type="submit"
-                        className="w-full bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors"
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-10">
+                {stats.map((s) => (
+                    <div
+                        key={s.label}
+                        className="bg-white rounded-lg border border-charcoal/10 p-5"
                     >
-                        تسجيل الدخول
-                    </button>
+                        <p className="text-xs text-muted mb-2">{s.label}</p>
+                        <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
+                    </div>
+                ))}
+            </div>
 
-                    <p className="text-xs text-muted text-center pt-2 border-t border-charcoal/10">
-                        للتجربة: admin@mood.com / admin123
+            {/* Quick Links */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Link
+                    href="/admin/dashboard/products"
+                    className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-colors"
+                >
+                    <h3 className="text-lg font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors">
+                        إدارة المنتجات
+                    </h3>
+                    <p className="text-sm text-muted">
+                        إضافة وتعديل وحذف المنتجات
                     </p>
-                </form>
+                </Link>
+
+                <Link
+                    href="/admin/dashboard/orders"
+                    className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-colors"
+                >
+                    <h3 className="text-lg font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors">
+                        الطلبات
+                    </h3>
+                    <p className="text-sm text-muted">
+                        شوف الطلبات الواردة وحدّث حالتها
+                    </p>
+                </Link>
+
+                <Link
+                    href="/products"
+                    className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-colors"
+                >
+                    <h3 className="text-lg font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors">
+                        عرض المتجر
+                    </h3>
+                    <p className="text-sm text-muted">
+                        شوف الموقع من منظور الزائر
+                    </p>
+                </Link>
             </div>
         </div>
     );

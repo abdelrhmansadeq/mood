@@ -10,6 +10,7 @@ import CartDrawer from "@/components/cart-drawer";
 import { ProductsProvider } from "@/components/products-context";
 import { AdminProvider } from "@/components/admin-context";
 import { WishlistProvider } from "@/components/wishlist-context";
+import { AuthProvider } from "@/components/auth-context";
 
 const inter = Inter({
     subsets: ["latin"],
@@ -42,20 +43,22 @@ export default function RootLayout({
             className={`${inter.variable} ${plexArabic.variable}`}
         >
         <body className="font-arabic bg-cream text-charcoal antialiased">
-        <ProductsProvider>
-            <AdminProvider>
-                <WishlistProvider>
-                    <CartProvider>
-                        <Navbar />
-                        <CartDrawer />
-                        <WhatsAppButton />
-                        <AIAssistant />
-                        <main className="pt-24 min-h-screen">{children}</main>
-                        <Footer />
-                    </CartProvider>
-                </WishlistProvider>
-            </AdminProvider>
-        </ProductsProvider>
+        <AuthProvider>
+            <ProductsProvider>
+                <AdminProvider>
+                    <WishlistProvider>
+                        <CartProvider>
+                            <Navbar />
+                            <CartDrawer />
+                            <WhatsAppButton />
+                            <AIAssistant />
+                            <main className="pt-24 min-h-screen">{children}</main>
+                            <Footer />
+                        </CartProvider>
+                    </WishlistProvider>
+                </AdminProvider>
+            </ProductsProvider>
+        </AuthProvider>
         </body>
         </html>
     );

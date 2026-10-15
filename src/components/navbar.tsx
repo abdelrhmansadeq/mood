@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import CartIcon from "./cart-icon";
 import WishlistIcon from "./wishlist-icon";
+import UserMenu from "./user-menu";
 
 export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
@@ -52,6 +53,7 @@ export default function Navbar() {
 
                         {/* Right Side Icons */}
                         <div className="flex items-center gap-4">
+                            <UserMenu />
                             <WishlistIcon />
                             <CartIcon />
 
