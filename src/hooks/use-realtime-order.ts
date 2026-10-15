@@ -7,6 +7,7 @@ import type { Order, OrderItem } from "@/lib/orders-api";
 type SupabaseOrder = {
     id: number;
     user_id: string;
+    user_email: string | null;
     order_number: string;
     full_name: string;
     phone: string;
@@ -36,6 +37,7 @@ function toOrder(row: SupabaseOrder): Order {
         items: row.items,
         status: row.status,
         createdAt: row.created_at,
+        userEmail: row.user_email,
     };
 }
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAdmin } from "@/components/admin-context";
 import { useToast } from "@/components/toast-context";
 import { useRealtimeAllOrders } from "@/hooks/use-realtime-all-orders";
+import { OrderListSkeleton } from "@/components/skeleton";
 import {
     fetchAllOrders,
     updateOrderStatus,
@@ -124,7 +125,7 @@ export default function AdminOrdersPage() {
             </div>
 
             {isLoading ? (
-                <div className="text-center py-20 text-muted">جاري التحميل...</div>
+                <OrderListSkeleton count={3} />
             ) : filteredOrders.length === 0 ? (
                 <div className="text-center py-20 bg-white rounded-lg border border-charcoal/10">
                     <p className="text-muted">

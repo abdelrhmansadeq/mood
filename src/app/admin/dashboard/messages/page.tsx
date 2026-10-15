@@ -1,5 +1,6 @@
 "use client";
 
+import { MessageListSkeleton } from "@/components/skeleton";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAdmin } from "@/components/admin-context";
@@ -86,7 +87,7 @@ export default function AdminMessagesPage() {
             </div>
 
             {isLoading ? (
-                <div className="text-center py-20 text-muted">جاري التحميل...</div>
+                <MessageListSkeleton count={3} />
             ) : filteredMessages.length === 0 ? (
                 <div className="text-center py-20 bg-white rounded-lg border border-charcoal/10">
                     <p className="text-muted">
