@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { FormEvent } from "react";
 import { useCart } from "@/components/cart-context";
 import { useAuth } from "@/components/auth-context";
+import { useProducts } from "@/components/products-context";
 import { createOrder } from "@/lib/orders-api";
 
 type FormData = {
@@ -20,6 +21,7 @@ export default function CheckoutPage() {
     const router = useRouter();
     const { items, totalPrice, clearCart } = useCart();
     const { user, isLoading: authLoading } = useAuth();
+    const { refreshProducts } = useProducts();
 
     const [formData, setFormData] = useState<FormData>({
         fullName: "",
@@ -36,6 +38,7 @@ export default function CheckoutPage() {
     // Pre-fill from user data
     useEffect(() => {
         if (user) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setFormData((prev) => ({
                 ...prev,
                 fullName: user.user_metadata?.full_name || "",
@@ -52,7 +55,7 @@ export default function CheckoutPage() {
     }, [user, authLoading, router]);
 
     const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+        e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
     ) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
@@ -60,7 +63,7 @@ export default function CheckoutPage() {
     const shipping = totalPrice >= 500 ? 0 : 50;
     const finalTotal = totalPrice + shipping;
 
-    const handleSubmit = async (e: FormEvent) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError("");
 
@@ -72,16 +75,13 @@ export default function CheckoutPage() {
         setIsSubmitting(true);
 
         try {
-            const order = await createOrder({
+            const result = await createOrder({
                 userId: user.id,
                 fullName: formData.fullName,
                 phone: formData.phone,
                 city: formData.city,
                 address: formData.address,
                 notes: formData.notes,
-                subtotal: totalPrice,
-                shipping,
-                total: finalTotal,
                 items: items.map((item) => ({
                     productId: item.productId,
                     name: item.name,
@@ -94,10 +94,19 @@ export default function CheckoutPage() {
                 })),
             });
 
-            setOrderNumber(order.orderNumber);
-            setSubmitted(true);
-            clearCart();
-            window.scrollTo({ top: 0, behavior: "smooth" });
+            if (result.error) {
+                setError(result.error);
+                setIsSubmitting(false);
+                return;
+            }
+
+            if (result.order) {
+                setOrderNumber(result.order.orderNumber);
+                setSubmitted(true);
+                clearCart();
+                await refreshProducts();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            }
         } catch (e) {
             console.error("Order error:", e);
             setError("حصلت مشكلة في حفظ الطلب. حاول تاني.");

@@ -1,4 +1,5 @@
 "use client";
+import { ProductGridSkeleton } from "@/components/skeleton";
 
 import { useState, useMemo } from "react";
 import ProductCard from "@/components/product-card";
@@ -8,7 +9,7 @@ type Category = "all" | "men" | "women" | "kids";
 type SortOption = "featured" | "price-asc" | "price-desc" | "name-asc";
 
 export default function ProductsPage() {
-    const { products } = useProducts();
+    const { products, isLoading } = useProducts();
     const [category, setCategory] = useState<Category>("all");
     const [searchQuery, setSearchQuery] = useState("");
     const [sortBy, setSortBy] = useState<SortOption>("featured");
@@ -129,10 +130,21 @@ export default function ProductsPage() {
                 {filteredProducts.length} منتج
             </p>
 
-            {filteredProducts.length > 0 ? (
+            {isLoading ? (
+                <ProductGridSkeleton count={8} />
+            ) : filteredProducts.length > 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                    {filteredProducts.map((product) => (
-                        <ProductCard key={product.id} product={product} />
+                    {filteredProducts.map((product, idx) => (
+                        <div
+                            key={product.id}
+                            className="animate-fade-up opacity-0"
+                            style={{
+                                animationDelay: `${idx * 50}ms`,
+                                animationFillMode: "forwards",
+                            }}
+                        >
+                            <ProductCard product={product} />
+                        </div>
                     ))}
                 </div>
             ) : (

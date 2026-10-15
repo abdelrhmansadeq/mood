@@ -1,48 +1,105 @@
 "use client";
-import ProductReviews from "./product-reviews";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import type { Product } from "@/data/products";
+import type { Product, ProductSizes } from "@/data/products";
 import { useCart } from "./cart-context";
+import ProductReviews from "./product-reviews";
 
 type Props = {
     product: Product;
     related: Product[];
 };
 
-const SIZES = ["S", "M", "L", "XL", "XXL"];
+const SIZES: Array<keyof ProductSizes> = ["S", "M", "L", "XL", "XXL"];
 
-const COLORS = [
-    { name: "أسود", value: "#1F1F1F" },
-    { name: "أبيض", value: "#FFFFFF" },
-    { name: "بيج", value: "#D4B896" },
-    { name: "نبيتي", value: "#7B2D26" },
-];
+const defaultSizes: ProductSizes = { S: 0, M: 0, L: 0, XL: 0, XXL: 0 };
 
 export default function ProductDetail({ product, related }: Props) {
-    const [selectedSize, setSelectedSize] = useState("M");
-    const [selectedColor, setSelectedColor] = useState(COLORS[0].value);
+    const hasColors = product.colors && product.colors.length > 0;
+
+    const [selectedColorIndex, setSelectedColorIndex] = useState(0);
+    const [selectedSize, setSelectedSize] = useState<keyof ProductSizes>("M");
     const [quantity, setQuantity] = useState(1);
     const [addedMessage, setAddedMessage] = useState(false);
 
     const { addItem, openCart } = useCart();
 
+    // المقاسات المتاحة حسب اللون المختار
+    const currentSizes: ProductSizes = hasColors
+        ? product.colors[selectedColorIndex]?.sizes || defaultSizes
+        : product.sizes || defaultSizes;
+
+    const currentImage = hasColors
+        ? product.colors[selectedColorIndex]?.image || product.image
+        : product.image;
+
+    const currentColorName = hasColors
+        ? product.colors[selectedColorIndex]?.name
+        : null;
+
+    const currentColorHex = hasColors
+        ? product.colors[selectedColorIndex]?.hex
+        : null;
+
+    // أول مقاس متاح
+    const firstAvailableSize = SIZES.find((s) => (currentSizes[s] || 0) > 0);
+
+    // لازم نضبط المقاس لما اللون يتغير
+    useEffect(() => {
+        if (firstAvailableSize && (currentSizes[selectedSize] || 0) === 0) {
+            setSelectedSize(firstAvailableSize);
+            setQuantity(1);
+        }
+    }, [selectedColorIndex, firstAvailableSize, currentSizes, selectedSize]);
+
+    // إجمالي المخزون الحالي
+    const totalCurrentStock = hasColors
+        ? product.colors.reduce((total, color) => {
+            return (
+                total +
+                Object.values(color.sizes || defaultSizes).reduce((a, b) => a + b, 0)
+            );
+        }, 0)
+        : Object.values(product.sizes || defaultSizes).reduce((a, b) => a + b, 0);
+
+    const isOutOfStock = totalCurrentStock === 0;
+    const sizeStock = currentSizes[selectedSize] || 0;
+    const reachedMax = quantity >= sizeStock;
+    const canAddToCart = !isOutOfStock && sizeStock > 0;
+
     const handleAddToCart = () => {
+        if (!canAddToCart) return;
         addItem({
             productId: product.id,
             name: product.name,
             nameEn: product.nameEn,
             price: product.price,
-            image: product.image,
+            image: currentImage,
             size: selectedSize,
-            color: selectedColor,
+            color: currentColorName || "افتراضي",
             quantity,
         });
         setAddedMessage(true);
         openCart();
         setTimeout(() => setAddedMessage(false), 2500);
     };
+
+    const handleSizeChange = (size: keyof ProductSizes) => {
+        setSelectedSize(size);
+        setQuantity(1);
+    };
+
+    const handleColorChange = (idx: number) => {
+        setSelectedColorIndex(idx);
+        setQuantity(1);
+        // الـ useEffect هيتولى ضبط المقاس
+    };
+
+    // ستوك اللون المختار
+    const colorTotalStock = hasColors
+        ? Object.values(currentSizes).reduce((a, b) => a + b, 0)
+        : totalCurrentStock;
 
     return (
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
@@ -64,17 +121,29 @@ export default function ProductDetail({ product, related }: Props) {
                 >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                        src={product.image}
+                        key={currentImage}
+                        src={currentImage}
                         alt={product.name}
-                        className="absolute inset-0 w-full h-full object-cover"
+                        className={`absolute inset-0 w-full h-full object-cover animate-fade-in ${
+                            isOutOfStock ? "opacity-50" : ""
+                        }`}
                     />
+                    {isOutOfStock && (
+                        <div className="absolute top-4 right-4 bg-charcoal/90 text-cream text-sm font-medium px-4 py-2 rounded-full">
+                            نفد المخزون
+                        </div>
+                    )}
                 </div>
 
                 {/* Info */}
                 <div className="flex flex-col">
                     {/* Category */}
                     <p className="text-gold text-xs font-medium tracking-widest uppercase mb-3">
-                        {product.category === "men" ? "رجالي" : "نسائي"}
+                        {product.category === "men"
+                            ? "رجالي"
+                            : product.category === "women"
+                                ? "نسائي"
+                                : "أطفال"}
                     </p>
 
                     {/* Title */}
@@ -84,77 +153,123 @@ export default function ProductDetail({ product, related }: Props) {
                     <p className="text-muted mb-6">{product.nameEn}</p>
 
                     {/* Price */}
-                    <p className="text-3xl font-bold text-charcoal mb-6">
+                    <p className="text-3xl font-bold text-charcoal mb-4">
                         {product.price} <span className="text-lg">ج.م</span>
                     </p>
+
+                    {/* Stock Status */}
+                    {isOutOfStock ? (
+                        <p className="text-sm text-error font-medium mb-6">نفد المخزون</p>
+                    ) : totalCurrentStock < 10 ? (
+                        <p className="text-sm text-gold font-medium mb-6">
+                            باقي {totalCurrentStock} قطع فقط
+                        </p>
+                    ) : (
+                        <p className="text-sm text-success font-medium mb-6">
+                            متوفر ({totalCurrentStock} قطعة)
+                        </p>
+                    )}
 
                     {/* Description */}
                     <p className="text-charcoal/80 leading-relaxed mb-8">
                         {product.description}
                     </p>
 
+                    {/* Color Picker */}
+                    {hasColors && (
+                        <div className="mb-6">
+                            <div className="flex items-center justify-between mb-3">
+                                <label className="text-sm font-medium text-charcoal">اللون</label>
+                                <span className="text-sm text-muted flex items-center gap-2">
+                  <span
+                      className="inline-block w-3 h-3 rounded-full border border-charcoal/20"
+                      style={{ backgroundColor: currentColorHex || "#000" }}
+                  />
+                                    {currentColorName} ({colorTotalStock} قطعة)
+                </span>
+                            </div>
+                            <div className="flex flex-wrap gap-3">
+                                {product.colors.map((color, idx) => {
+                                    const colorStock = Object.values(
+                                        color.sizes || defaultSizes
+                                    ).reduce((a, b) => a + b, 0);
+                                    return (
+                                        <button
+                                            key={idx}
+                                            onClick={() => handleColorChange(idx)}
+                                            aria-label={color.name}
+                                            title={`${color.name} (${colorStock} قطعة)`}
+                                            className={`relative w-12 h-12 rounded-full border-2 transition-all ${
+                                                selectedColorIndex === idx
+                                                    ? "border-gold scale-110"
+                                                    : "border-charcoal/20 hover:border-charcoal/50"
+                                            } ${colorStock === 0 ? "opacity-40" : ""}`}
+                                        >
+                      <span
+                          className="absolute inset-1 rounded-full"
+                          style={{ backgroundColor: color.hex }}
+                      />
+                                            {colorStock === 0 && (
+                                                <span className="absolute inset-0 flex items-center justify-center text-xs text-error font-bold">
+                          ✕
+                        </span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Size Picker */}
                     <div className="mb-6">
                         <div className="flex items-center justify-between mb-3">
                             <label className="text-sm font-medium text-charcoal">المقاس</label>
-                            <span className="text-sm text-muted">{selectedSize}</span>
-                        </div>
-                        <div className="flex gap-2">
-                            {SIZES.map((size) => (
-                                <button
-                                    key={size}
-                                    onClick={() => setSelectedSize(size)}
-                                    className={`w-12 h-12 rounded-md text-sm font-medium border transition-colors ${
-                                        selectedSize === size
-                                            ? "border-charcoal bg-charcoal text-cream"
-                                            : "border-charcoal/20 text-charcoal hover:border-charcoal"
-                                    }`}
-                                >
-                                    {size}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Color Picker */}
-                    <div className="mb-6">
-                        <div className="flex items-center justify-between mb-3">
-                            <label className="text-sm font-medium text-charcoal">اللون</label>
                             <span className="text-sm text-muted">
-                {COLORS.find((c) => c.value === selectedColor)?.name}
+                {sizeStock > 0 ? `متوفر ${sizeStock}` : "غير متوفر"}
               </span>
                         </div>
-                        <div className="flex gap-3">
-                            {COLORS.map((color) => (
-                                <button
-                                    key={color.value}
-                                    onClick={() => setSelectedColor(color.value)}
-                                    aria-label={color.name}
-                                    className={`w-9 h-9 rounded-full border-2 transition-all ${
-                                        selectedColor === color.value
-                                            ? "border-gold scale-110"
-                                            : "border-charcoal/20"
-                                    }`}
-                                    style={{ backgroundColor: color.value }}
-                                />
-                            ))}
+                        <div className="flex flex-wrap gap-2">
+                            {SIZES.map((size) => {
+                                const stock = currentSizes[size] || 0;
+                                const disabled = stock === 0;
+                                const isSelected = selectedSize === size;
+                                return (
+                                    <button
+                                        key={size}
+                                        onClick={() => !disabled && handleSizeChange(size)}
+                                        disabled={disabled}
+                                        className={`relative w-14 h-12 rounded-md text-sm font-medium border transition-colors ${
+                                            isSelected
+                                                ? "border-charcoal bg-charcoal text-cream"
+                                                : disabled
+                                                    ? "border-charcoal/10 text-charcoal/30 cursor-not-allowed line-through"
+                                                    : "border-charcoal/20 text-charcoal hover:border-charcoal"
+                                        }`}
+                                    >
+                                        {size}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
                     {/* Quantity + Add to Cart */}
-                    <div className="flex items-center gap-4 mb-6">
+                    <div className="flex items-center gap-4 mb-2">
                         <div className="flex items-center border border-charcoal/20 rounded-md">
                             <button
                                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                className="w-10 h-12 text-charcoal hover:text-gold transition-colors"
+                                disabled={!canAddToCart}
+                                className="w-10 h-12 text-charcoal hover:text-gold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                 aria-label="تقليل"
                             >
                                 −
                             </button>
                             <span className="w-10 text-center font-medium">{quantity}</span>
                             <button
-                                onClick={() => setQuantity(quantity + 1)}
-                                className="w-10 h-12 text-charcoal hover:text-gold transition-colors"
+                                onClick={() => setQuantity(Math.min(sizeStock, quantity + 1))}
+                                disabled={!canAddToCart || reachedMax}
+                                className="w-10 h-12 text-charcoal hover:text-gold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                 aria-label="زيادة"
                             >
                                 +
@@ -163,15 +278,27 @@ export default function ProductDetail({ product, related }: Props) {
 
                         <button
                             onClick={handleAddToCart}
-                            className="flex-1 bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors"
+                            disabled={!canAddToCart}
+                            className="flex-1 bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-charcoal disabled:hover:text-cream"
                         >
-                            أضف للسلة
+                            {isOutOfStock
+                                ? "نفد المخزون"
+                                : sizeStock === 0
+                                    ? "المقاس غير متوفر"
+                                    : "أضف للسلة"}
                         </button>
                     </div>
 
+                    {/* Max Reached */}
+                    {reachedMax && canAddToCart && (
+                        <p className="text-xs text-gold mb-6">
+                            وصلت للحد الأقصى المتاح ({sizeStock} قطعة)
+                        </p>
+                    )}
+
                     {/* Feedback */}
                     {addedMessage && (
-                        <div className="bg-success/10 text-success border border-success/30 rounded-md p-3 text-sm text-center mb-6">
+                        <div className="bg-success/10 text-success border border-success/30 rounded-md p-3 text-sm text-center mb-6 mt-2">
                             ✓ تمت الإضافة للسلة
                         </div>
                     )}
@@ -221,6 +348,7 @@ export default function ProductDetail({ product, related }: Props) {
                     </div>
                 </section>
             )}
+
             {/* Reviews */}
             <ProductReviews productId={product.id} />
         </div>

@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAdmin } from "@/components/admin-context";
 import { useProducts } from "@/components/products-context";
-import type { Product } from "@/data/products";
+import type {
+    Product,
+    ProductSizes,
+    ProductColorVariant,
+} from "@/data/products";
 
 type FormData = {
     name: string;
@@ -16,7 +20,11 @@ type FormData = {
     category: "men" | "women" | "kids";
     description: string;
     isFeatured: boolean;
+    sizes: ProductSizes;
+    colors: ProductColorVariant[];
 };
+
+const emptySizes: ProductSizes = { S: 0, M: 0, L: 0, XL: 0, XXL: 0 };
 
 const emptyForm: FormData = {
     name: "",
@@ -26,12 +34,29 @@ const emptyForm: FormData = {
     category: "men",
     description: "",
     isFeatured: false,
+    sizes: { ...emptySizes },
+    colors: [],
 };
+
+const SIZE_KEYS: Array<keyof ProductSizes> = ["S", "M", "L", "XL", "XXL"];
+
+function calcTotal(sizes: ProductSizes, colors: ProductColorVariant[]): number {
+    if (colors.length > 0) {
+        return colors.reduce(
+            (total, c) =>
+                total +
+                Object.values(c.sizes || emptySizes).reduce((a, b) => a + b, 0),
+            0
+        );
+    }
+    return Object.values(sizes).reduce((a, b) => a + b, 0);
+}
 
 export default function AdminProductsPage() {
     const router = useRouter();
     const { isLoggedIn } = useAdmin();
-    const { products, addProduct, updateProduct, deleteProduct, resetProducts } = useProducts();
+    const { products, addProduct, updateProduct, deleteProduct, resetProducts } =
+        useProducts();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
@@ -43,6 +68,9 @@ export default function AdminProductsPage() {
     }, [isLoggedIn, router]);
 
     if (!isLoggedIn) return null;
+
+    const hasColors = formData.colors.length > 0;
+    const totalStock = calcTotal(formData.sizes, formData.colors);
 
     const openAdd = () => {
         setEditingId(null);
@@ -60,6 +88,8 @@ export default function AdminProductsPage() {
             category: product.category,
             description: product.description,
             isFeatured: product.isFeatured || false,
+            sizes: product.sizes || { ...emptySizes },
+            colors: product.colors || [],
         });
         setIsModalOpen(true);
     };
@@ -78,12 +108,89 @@ export default function AdminProductsPage() {
         }
     };
 
+    const handleSizeChange = (size: keyof ProductSizes, value: number) => {
+        setFormData({
+            ...formData,
+            sizes: { ...formData.sizes, [size]: Math.max(0, value) },
+        });
+    };
+
+    // ==== Colors ====
+    const addColor = () => {
+        setFormData({
+            ...formData,
+            colors: [
+                ...formData.colors,
+                {
+                    name: "",
+                    hex: "#000000",
+                    image: formData.image || "",
+                    sizes: { ...emptySizes },
+                },
+            ],
+        });
+    };
+
+    const updateColor = (
+        idx: number,
+        field: "name" | "hex" | "image",
+        value: string
+    ) => {
+        const newColors = [...formData.colors];
+        newColors[idx] = { ...newColors[idx], [field]: value };
+        setFormData({ ...formData, colors: newColors });
+    };
+
+    const updateColorSize = (
+        idx: number,
+        size: keyof ProductSizes,
+        value: number
+    ) => {
+        const newColors = [...formData.colors];
+        newColors[idx] = {
+            ...newColors[idx],
+            sizes: {
+                ...newColors[idx].sizes,
+                [size]: Math.max(0, value),
+            },
+        };
+        setFormData({ ...formData, colors: newColors });
+    };
+
+    const removeColor = (idx: number) => {
+        setFormData({
+            ...formData,
+            colors: formData.colors.filter((_, i) => i !== idx),
+        });
+    };
+
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
+
+        // فلترة الألوان الناقصة
+        const incompleteColors: string[] = [];
+        formData.colors.forEach((c, i) => {
+            if (!c.name.trim() || !c.image.trim()) {
+                incompleteColors.push(`لون رقم ${i + 1}`);
+            }
+        });
+
+        if (incompleteColors.length > 0) {
+            alert(
+                `الألوان دي ناقصة: ${incompleteColors.join(", ")}.\nلازم كل لون يكون له اسم ورابط صورة.`
+            );
+            return;
+        }
+
+        const productData = {
+            ...formData,
+            stock: totalStock,
+        };
+
         if (editingId) {
-            updateProduct(editingId, formData);
+            updateProduct(editingId, productData);
         } else {
-            addProduct(formData);
+            addProduct(productData);
         }
         setIsModalOpen(false);
         setFormData(emptyForm);
@@ -138,57 +245,124 @@ export default function AdminProductsPage() {
                             <th className="text-right px-4 py-3 font-medium text-charcoal">الصورة</th>
                             <th className="text-right px-4 py-3 font-medium text-charcoal">الاسم</th>
                             <th className="text-right px-4 py-3 font-medium text-charcoal">السعر</th>
-                            <th className="text-right px-4 py-3 font-medium text-charcoal">التصنيف</th>
+                            <th className="text-right px-4 py-3 font-medium text-charcoal">المتغيرات</th>
+                            <th className="text-right px-4 py-3 font-medium text-charcoal">الإجمالي</th>
                             <th className="text-right px-4 py-3 font-medium text-charcoal">مميز</th>
                             <th className="text-left px-4 py-3 font-medium text-charcoal">إجراءات</th>
                         </tr>
                         </thead>
                         <tbody>
-                        {products.map((p) => (
-                            <tr key={p.id} className="border-b border-charcoal/5 last:border-b-0 hover:bg-cream/50">
-                                <td className="px-4 py-3">
-                                    <div className="w-12 h-14 rounded-md overflow-hidden bg-cream">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img
-                                            src={p.image}
-                                            alt={p.name}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    </div>
-                                </td>
-                                <td className="px-4 py-3">
-                                    <p className="font-medium text-charcoal">{p.name}</p>
-                                    <p className="text-xs text-muted">{p.nameEn}</p>
-                                </td>
-                                <td className="px-4 py-3 text-charcoal">{p.price} ج.م</td>
-                                <td className="px-4 py-3 text-charcoal">
-                                    {p.category === "men" ? "رجالي" : p.category === "women" ? "نسائي" : "أطفال"}
-                                </td>
-                                <td className="px-4 py-3">
-                                    {p.isFeatured ? (
-                                        <span className="text-gold">★</span>
-                                    ) : (
-                                        <span className="text-muted">—</span>
-                                    )}
-                                </td>
-                                <td className="px-4 py-3 text-left">
-                                    <div className="flex items-center gap-3 justify-end">
-                                        <button
-                                            onClick={() => openEdit(p)}
-                                            className="text-charcoal hover:text-gold transition-colors text-xs font-medium"
-                                        >
-                                            تعديل
-                                        </button>
-                                        <button
-                                            onClick={() => setConfirmDeleteId(p.id)}
-                                            className="text-error hover:underline text-xs font-medium"
-                                        >
-                                            حذف
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
+                        {products.map((p) => {
+                            const sizes = p.sizes || emptySizes;
+                            const colors = p.colors || [];
+                            const total = calcTotal(sizes, colors);
+                            return (
+                                <tr
+                                    key={p.id}
+                                    className="border-b border-charcoal/5 last:border-b-0 hover:bg-cream/50 align-top"
+                                >
+                                    <td className="px-4 py-3">
+                                        <div className="w-12 h-14 rounded-md overflow-hidden bg-cream">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img
+                                                src={p.image}
+                                                alt={p.name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <p className="font-medium text-charcoal">{p.name}</p>
+                                        <p className="text-xs text-muted">{p.nameEn}</p>
+                                        <p className="text-xs text-muted mt-1">
+                                            {p.category === "men"
+                                                ? "رجالي"
+                                                : p.category === "women"
+                                                    ? "نسائي"
+                                                    : "أطفال"}
+                                        </p>
+                                    </td>
+                                    <td className="px-4 py-3 text-charcoal whitespace-nowrap">
+                                        {p.price} ج.م
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        {colors.length > 0 ? (
+                                            <div className="space-y-1.5 min-w-[200px]">
+                                                {colors.map((c, i) => {
+                                                    const colorTotal = Object.values(
+                                                        c.sizes || emptySizes
+                                                    ).reduce((a, b) => a + b, 0);
+                                                    return (
+                                                        <div key={i} className="flex items-center gap-2">
+                                <span
+                                    className="w-4 h-4 rounded-full border border-charcoal/20 flex-shrink-0"
+                                    style={{ backgroundColor: c.hex }}
+                                />
+                                                            <span className="text-xs text-charcoal font-medium">
+                                  {c.name}:
+                                </span>
+                                                            <span className="text-xs text-muted">
+                                  {colorTotal}
+                                </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-wrap gap-1 min-w-[200px]">
+                                                {SIZE_KEYS.map((size) => {
+                                                    const qty = sizes[size] || 0;
+                                                    return (
+                                                        <span
+                                                            key={size}
+                                                            className={`text-xs px-2 py-0.5 rounded ${
+                                                                qty === 0
+                                                                    ? "bg-charcoal/5 text-charcoal/30"
+                                                                    : "bg-charcoal/10 text-charcoal"
+                                                            }`}
+                                                        >
+                                {size}: {qty}
+                              </span>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        {total === 0 ? (
+                                            <span className="text-error font-medium">نفد</span>
+                                        ) : total < 10 ? (
+                                            <span className="text-gold font-medium">{total}</span>
+                                        ) : (
+                                            <span className="text-charcoal font-medium">{total}</span>
+                                        )}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        {p.isFeatured ? (
+                                            <span className="text-gold">★</span>
+                                        ) : (
+                                            <span className="text-muted">—</span>
+                                        )}
+                                    </td>
+                                    <td className="px-4 py-3 text-left">
+                                        <div className="flex items-center gap-3 justify-end">
+                                            <button
+                                                onClick={() => openEdit(p)}
+                                                className="text-charcoal hover:text-gold transition-colors text-xs font-medium"
+                                            >
+                                                تعديل
+                                            </button>
+                                            <button
+                                                onClick={() => setConfirmDeleteId(p.id)}
+                                                className="text-error hover:underline text-xs font-medium"
+                                            >
+                                                حذف
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            );
+                        })}
                         </tbody>
                     </table>
                 </div>
@@ -208,8 +382,8 @@ export default function AdminProductsPage() {
                         className="fixed inset-0 bg-charcoal/50 z-[80]"
                     />
                     <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 pointer-events-none">
-                        <div className="bg-cream rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto pointer-events-auto">
-                            <div className="flex items-center justify-between p-6 border-b border-charcoal/10">
+                        <div className="bg-cream rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto pointer-events-auto">
+                            <div className="flex items-center justify-between p-6 border-b border-charcoal/10 sticky top-0 bg-cream z-10">
                                 <h2 className="text-xl font-bold text-charcoal">
                                     {editingId ? "تعديل منتج" : "إضافة منتج جديد"}
                                 </h2>
@@ -292,7 +466,7 @@ export default function AdminProductsPage() {
 
                                 <div>
                                     <label className="block text-sm font-medium text-charcoal mb-2">
-                                        رابط الصورة *
+                                        الصورة الرئيسية *
                                     </label>
                                     <input
                                         type="url"
@@ -319,7 +493,190 @@ export default function AdminProductsPage() {
                                     />
                                 </div>
 
-                                <div className="flex items-center gap-3">
+                                {/* ==== Colors Section ==== */}
+                                <div className="border-t border-charcoal/10 pt-5">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div>
+                                            <label className="block text-sm font-medium text-charcoal">
+                                                الألوان والمقاسات
+                                            </label>
+                                            <p className="text-xs text-muted mt-1">
+                                                {hasColors
+                                                    ? "كل لون له مخزونه المستقل لكل مقاس"
+                                                    : "لو مش هتضيف ألوان، استخدم المقاسات تحت"}
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={addColor}
+                                            className="text-sm text-gold hover:text-gold-dark font-medium whitespace-nowrap"
+                                        >
+                                            + إضافة لون
+                                        </button>
+                                    </div>
+
+                                    {hasColors && (
+                                        <div className="space-y-4 mb-4">
+                                            {formData.colors.map((color, idx) => {
+                                                const colorTotal = Object.values(color.sizes).reduce(
+                                                    (a, b) => a + b,
+                                                    0
+                                                );
+                                                return (
+                                                    <div
+                                                        key={idx}
+                                                        className="bg-white rounded-md border border-charcoal/10 p-4"
+                                                    >
+                                                        {/* Color Info */}
+                                                        <div className="grid grid-cols-12 gap-3 items-start mb-4">
+                                                            <div className="col-span-12 md:col-span-1 flex items-center justify-center">
+                                <span
+                                    className="w-12 h-12 rounded-full border-2 border-charcoal/20"
+                                    style={{ backgroundColor: color.hex }}
+                                />
+                                                            </div>
+
+                                                            <div className="col-span-6 md:col-span-3">
+                                                                <label className="block text-xs text-muted mb-1">
+                                                                    اسم اللون *
+                                                                </label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={color.name}
+                                                                    onChange={(e) =>
+                                                                        updateColor(idx, "name", e.target.value)
+                                                                    }
+                                                                    placeholder="أبيض"
+                                                                    className="w-full px-3 py-2 rounded-md border border-charcoal/15 bg-white text-xs text-charcoal focus:outline-none focus:border-gold"
+                                                                />
+                                                            </div>
+
+                                                            <div className="col-span-6 md:col-span-3">
+                                                                <label className="block text-xs text-muted mb-1">
+                                                                    اللون
+                                                                </label>
+                                                                <div className="flex items-center gap-1">
+                                                                    <input
+                                                                        type="color"
+                                                                        value={color.hex}
+                                                                        onChange={(e) =>
+                                                                            updateColor(idx, "hex", e.target.value)
+                                                                        }
+                                                                        className="w-9 h-9 rounded border border-charcoal/15 cursor-pointer flex-shrink-0"
+                                                                    />
+                                                                    <input
+                                                                        type="text"
+                                                                        value={color.hex}
+                                                                        onChange={(e) =>
+                                                                            updateColor(idx, "hex", e.target.value)
+                                                                        }
+                                                                        className="flex-1 min-w-0 px-2 py-2 rounded-md border border-charcoal/15 bg-white text-xs text-charcoal focus:outline-none focus:border-gold"
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="col-span-12 md:col-span-5">
+                                                                <label className="block text-xs text-muted mb-1">
+                                                                    صورة اللون *
+                                                                </label>
+                                                                <div className="flex items-center gap-2">
+                                                                    <input
+                                                                        type="url"
+                                                                        value={color.image}
+                                                                        onChange={(e) =>
+                                                                            updateColor(idx, "image", e.target.value)
+                                                                        }
+                                                                        placeholder="https://..."
+                                                                        className="flex-1 min-w-0 px-3 py-2 rounded-md border border-charcoal/15 bg-white text-xs text-charcoal focus:outline-none focus:border-gold"
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => removeColor(idx)}
+                                                                        className="p-2 text-error hover:bg-error/10 rounded-md transition-colors flex-shrink-0"
+                                                                        aria-label="حذف اللون"
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                                                            <polyline points="3 6 5 6 21 6" />
+                                                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Color Sizes */}
+                                                        <div>
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <label className="text-xs font-medium text-charcoal">
+                                                                    مخزون كل مقاس
+                                                                </label>
+                                                                <span className="text-xs text-gold font-bold">
+                                  الإجمالي: {colorTotal}
+                                </span>
+                                                            </div>
+                                                            <div className="grid grid-cols-5 gap-2">
+                                                                {SIZE_KEYS.map((size) => (
+                                                                    <div key={size}>
+                                                                        <label className="block text-[10px] text-center text-muted mb-1">
+                                                                            {size}
+                                                                        </label>
+                                                                        <input
+                                                                            type="number"
+                                                                            min="0"
+                                                                            value={color.sizes[size]}
+                                                                            onChange={(e) =>
+                                                                                updateColorSize(
+                                                                                    idx,
+                                                                                    size,
+                                                                                    Number(e.target.value)
+                                                                                )
+                                                                            }
+                                                                            className="w-full px-1.5 py-2 rounded-md border border-charcoal/15 bg-white text-xs text-charcoal text-center focus:outline-none focus:border-gold"
+                                                                        />
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+
+                                    {/* لو مفيش ألوان، نظهر sizes العادي */}
+                                    {!hasColors && (
+                                        <div className="bg-white rounded-md border border-charcoal/10 p-4">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <label className="text-xs font-medium text-charcoal">
+                                                    مخزون كل مقاس
+                                                </label>
+                                                <span className="text-xs text-gold font-bold">
+                          الإجمالي: {totalStock}
+                        </span>
+                                            </div>
+                                            <div className="grid grid-cols-5 gap-3">
+                                                {SIZE_KEYS.map((size) => (
+                                                    <div key={size}>
+                                                        <label className="block text-xs text-center font-medium text-charcoal mb-1.5">
+                                                            {size}
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={formData.sizes[size]}
+                                                            onChange={(e) =>
+                                                                handleSizeChange(size, Number(e.target.value))
+                                                            }
+                                                            className="w-full px-2 py-2.5 rounded-md border border-charcoal/15 bg-white text-sm text-charcoal text-center focus:outline-none focus:border-gold"
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex items-center gap-3 pt-3 border-t border-charcoal/10">
                                     <input
                                         type="checkbox"
                                         id="isFeatured"

@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Product } from "@/data/products";
+import type { Product, ProductSizes, ProductColorVariant } from "@/data/products";
 
 type SupabaseProduct = {
     id: number;
@@ -10,8 +10,13 @@ type SupabaseProduct = {
     category: "men" | "women" | "kids";
     description: string;
     is_featured: boolean;
+    stock: number;
+    sizes: ProductSizes;
+    colors: ProductColorVariant[];
     created_at: string;
 };
+
+const defaultSizes: ProductSizes = { S: 0, M: 0, L: 0, XL: 0, XXL: 0 };
 
 function toProduct(row: SupabaseProduct): Product {
     return {
@@ -23,7 +28,27 @@ function toProduct(row: SupabaseProduct): Product {
         category: row.category,
         description: row.description,
         isFeatured: row.is_featured,
+        stock: row.stock,
+        sizes: row.sizes || defaultSizes,
+        colors: row.colors || [],
     };
+}
+
+function calculateTotalStock(
+    sizes: ProductSizes,
+    colors: ProductColorVariant[]
+): number {
+    // لو في ألوان: الإجمالي = مجموع كل الألوان × كل المقاسات
+    if (colors && colors.length > 0) {
+        return colors.reduce((total, color) => {
+            return (
+                total +
+                Object.values(color.sizes || defaultSizes).reduce((a, b) => a + b, 0)
+            );
+        }, 0);
+    }
+    // لو مفيش ألوان: الإجمالي = مجموع الـ sizes
+    return Object.values(sizes || defaultSizes).reduce((a, b) => a + b, 0);
 }
 
 export async function fetchProducts(): Promise<Product[]> {
@@ -43,6 +68,10 @@ export async function fetchProducts(): Promise<Product[]> {
 export async function addProductToDB(
     product: Omit<Product, "id">
 ): Promise<Product> {
+    const sizes = product.sizes || defaultSizes;
+    const colors = product.colors || [];
+    const totalStock = calculateTotalStock(sizes, colors);
+
     const { data, error } = await supabase
         .from("products")
         .insert({
@@ -53,6 +82,9 @@ export async function addProductToDB(
             category: product.category,
             description: product.description,
             is_featured: product.isFeatured || false,
+            stock: totalStock,
+            sizes,
+            colors,
         })
         .select()
         .single();
@@ -79,6 +111,16 @@ export async function updateProductInDB(
         dbUpdates.description = updates.description;
     if (updates.isFeatured !== undefined) dbUpdates.is_featured = updates.isFeatured;
 
+    if (updates.sizes !== undefined) dbUpdates.sizes = updates.sizes;
+    if (updates.colors !== undefined) dbUpdates.colors = updates.colors;
+
+    // نعيد حساب الإجمالي
+    if (updates.sizes !== undefined || updates.colors !== undefined) {
+        const sizes = updates.sizes ?? defaultSizes;
+        const colors = updates.colors ?? [];
+        dbUpdates.stock = calculateTotalStock(sizes, colors);
+    }
+
     const { data, error } = await supabase
         .from("products")
         .update(dbUpdates)
@@ -104,14 +146,12 @@ export async function deleteProductFromDB(id: number): Promise<void> {
 }
 
 export async function resetProductsInDB(): Promise<void> {
-    // نحذف كل المنتجات
     const { error: deleteError } = await supabase
         .from("products")
         .delete()
-        .neq("id", 0);
+        .gte("id", 0);
     if (deleteError) throw deleteError;
 
-    // نرجع الـ seed products من data/products.ts
     const { products: seedProducts } = await import("@/data/products");
 
     const rows = seedProducts.map((p) => ({
@@ -122,6 +162,9 @@ export async function resetProductsInDB(): Promise<void> {
         category: p.category,
         description: p.description,
         is_featured: p.isFeatured || false,
+        stock: calculateTotalStock(p.sizes, p.colors || []),
+        sizes: p.sizes,
+        colors: p.colors || [],
     }));
 
     const { error: insertError } = await supabase.from("products").insert(rows);

@@ -69,37 +69,42 @@ export async function createOrder(params: {
     city: string;
     address: string;
     notes: string;
-    subtotal: number;
-    shipping: number;
-    total: number;
     items: OrderItem[];
-}): Promise<Order> {
-    const orderNumber = "MOOD-" + Math.floor(100000 + Math.random() * 900000);
+}): Promise<{ order?: Order; error?: string }> {
+    try {
+        const res = await fetch("/api/orders/create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(params),
+        });
 
-    const { data, error } = await supabase
-        .from("orders")
-        .insert({
-            user_id: params.userId,
-            order_number: orderNumber,
-            full_name: params.fullName,
-            phone: params.phone,
-            city: params.city,
-            address: params.address,
-            notes: params.notes || null,
-            subtotal: params.subtotal,
-            shipping: params.shipping,
-            total: params.total,
-            items: params.items,
-        })
-        .select()
-        .single();
+        const data = await res.json();
 
-    if (error) {
-        console.error("Error creating order:", error);
-        throw error;
+        if (!res.ok) {
+            return { error: data.error || "حصلت مشكلة" };
+        }
+
+        return {
+            order: {
+                id: data.order.id,
+                orderNumber: data.order.order_number,
+                fullName: data.order.full_name,
+                phone: data.order.phone,
+                city: data.order.city,
+                address: data.order.address,
+                notes: data.order.notes,
+                subtotal: data.order.subtotal,
+                shipping: data.order.shipping,
+                total: data.order.total,
+                items: data.order.items,
+                status: data.order.status,
+                createdAt: data.order.created_at,
+            },
+        };
+    } catch (e) {
+        console.error("createOrder error:", e);
+        return { error: "حصلت مشكلة في الاتصال" };
     }
-
-    return toOrder(data as SupabaseOrder);
 }
 
 export async function fetchUserOrders(userId: string): Promise<Order[]> {
@@ -144,19 +149,4 @@ export async function fetchAllOrders(): Promise<Order[]> {
     }
 
     return (data as SupabaseOrder[]).map(toOrder);
-}
-
-export async function updateOrderStatus(
-    orderId: number,
-    status: Order["status"]
-): Promise<void> {
-    const { error } = await supabase
-        .from("orders")
-        .update({ status })
-        .eq("id", orderId);
-
-    if (error) {
-        console.error("Error updating order status:", error);
-        throw error;
-    }
 }

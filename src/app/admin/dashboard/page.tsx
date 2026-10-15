@@ -19,12 +19,14 @@ export default function DashboardPage() {
 
     const menCount = products.filter((p) => p.category === "men").length;
     const womenCount = products.filter((p) => p.category === "women").length;
+    const kidsCount = products.filter((p) => p.category === "kids").length;
     const featuredCount = products.filter((p) => p.isFeatured).length;
 
     const stats = [
         { label: "إجمالي المنتجات", value: products.length, color: "text-charcoal" },
         { label: "رجالي", value: menCount, color: "text-charcoal" },
         { label: "نسائي", value: womenCount, color: "text-charcoal" },
+        { label: "أطفال", value: kidsCount, color: "text-charcoal" },
         { label: "منتجات مميزة", value: featuredCount, color: "text-gold" },
     ];
 
@@ -52,7 +54,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-10">
                 {stats.map((s) => (
                     <div
                         key={s.label}
@@ -65,7 +67,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Quick Links */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Link
                     href="/admin/dashboard/products"
                     className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-colors"
@@ -75,6 +77,18 @@ export default function DashboardPage() {
                     </h3>
                     <p className="text-sm text-muted">
                         إضافة وتعديل وحذف المنتجات
+                    </p>
+                </Link>
+
+                <Link
+                    href="/admin/dashboard/orders"
+                    className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-colors"
+                >
+                    <h3 className="text-lg font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors">
+                        الطلبات
+                    </h3>
+                    <p className="text-sm text-muted">
+                        شوف الطلبات الواردة وحدّث حالتها
                     </p>
                 </Link>
 

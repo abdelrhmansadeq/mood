@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { useProducts } from "./products-context";
 
 type WishlistContextType = {
     items: number[];
@@ -17,6 +18,7 @@ const STORAGE_KEY = "mood-wishlist";
 export function WishlistProvider({ children }: { children: ReactNode }) {
     const [items, setItems] = useState<number[]>([]);
     const [mounted, setMounted] = useState(false);
+    const { products } = useProducts();
 
     useEffect(() => {
         try {
@@ -39,6 +41,16 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
             console.error("Failed to save wishlist", e);
         }
     }, [items, mounted]);
+
+    // Clean stale items (products that no longer exist)
+    useEffect(() => {
+        if (!mounted || products.length === 0) return;
+        const validIds = new Set(products.map((p) => p.id));
+        const filtered = items.filter((id) => validIds.has(id));
+        if (filtered.length !== items.length) {
+            setItems(filtered);
+        }
+    }, [products, mounted, items]);
 
     const toggleItem = (productId: number) => {
         setItems((prev) =>

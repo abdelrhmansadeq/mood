@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { useProducts } from "./products-context";
 
 export type CartItem = {
     productId: number;
@@ -33,25 +34,42 @@ const STORAGE_KEY = "mood-cart";
 export function CartProvider({ children }: { children: ReactNode }) {
     const [items, setItems] = useState<CartItem[]>([]);
     const [isOpen, setIsOpen] = useState(false);
+    const [mounted, setMounted] = useState(false);
+    const { products } = useProducts();
 
     // Load from localStorage on mount
     useEffect(() => {
         try {
             const stored = localStorage.getItem(STORAGE_KEY);
-            if (stored) setItems(JSON.parse(stored));
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed)) setItems(parsed);
+            }
         } catch (e) {
             console.error("Failed to load cart", e);
         }
+        setMounted(true);
     }, []);
 
     // Save to localStorage whenever items change
     useEffect(() => {
+        if (!mounted) return;
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
         } catch (e) {
             console.error("Failed to save cart", e);
         }
-    }, [items]);
+    }, [items, mounted]);
+
+    // Clean stale items (products that no longer exist)
+    useEffect(() => {
+        if (!mounted || products.length === 0) return;
+        const validIds = new Set(products.map((p) => p.id));
+        const filtered = items.filter((item) => validIds.has(item.productId));
+        if (filtered.length !== items.length) {
+            setItems(filtered);
+        }
+    }, [products, mounted, items]);
 
     const addItem = (newItem: CartItem) => {
         setItems((prev) => {

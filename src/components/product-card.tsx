@@ -18,6 +18,8 @@ export default function ProductCard({ product }: Props) {
         toggleItem(product.id);
     };
 
+    const isOutOfStock = product.stock === 0;
+
     return (
         <Link
             href={`/products/${product.id}`}
@@ -29,7 +31,9 @@ export default function ProductCard({ product }: Props) {
                 <img
                     src={product.image}
                     alt={product.name}
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className={`absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${
+                        isOutOfStock ? "opacity-50" : ""
+                    }`}
                 />
 
                 {/* Wishlist Button */}
@@ -56,6 +60,13 @@ export default function ProductCard({ product }: Props) {
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                     </svg>
                 </button>
+
+                {/* Out of Stock Badge */}
+                {isOutOfStock && (
+                    <div className="absolute top-3 right-3 bg-charcoal/90 text-cream text-xs font-medium px-3 py-1.5 rounded-full">
+                        نفد المخزون
+                    </div>
+                )}
             </div>
 
             {/* Info */}
@@ -67,6 +78,9 @@ export default function ProductCard({ product }: Props) {
                 <p className="text-base font-semibold text-charcoal">
                     {product.price} <span className="text-xs">ج.م</span>
                 </p>
+                {isOutOfStock && (
+                    <p className="text-xs text-error font-medium mt-1">غير متوفر حالياً</p>
+                )}
             </div>
         </Link>
     );
