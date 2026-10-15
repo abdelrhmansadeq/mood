@@ -6,6 +6,7 @@ import Footer from "@/components/footer";
 import WhatsAppButton from "@/components/whatsapp-button";
 import AIAssistant from "@/components/ai-assistant";
 import MobileNav from "@/components/mobile-nav";
+import ScrollToTop from "@/components/scroll-to-top";
 import { CartProvider } from "@/components/cart-context";
 import CartDrawer from "@/components/cart-drawer";
 import { ProductsProvider } from "@/components/products-context";
@@ -56,6 +57,7 @@ export default function RootLayout({
                                 <CartDrawer />
                                 <WhatsAppButton />
                                 <AIAssistant />
+                                <ScrollToTop />
                                 <Toaster />
                                 <main className="pt-24 pb-20 md:pb-0 min-h-screen">
                                     {children}
