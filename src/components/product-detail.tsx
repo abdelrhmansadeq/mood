@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { Product, ProductSizes } from "@/data/products";
 import { useCart } from "./cart-context";
+import { useToast } from "./toast-context";
 import ProductReviews from "./product-reviews";
 
 type Props = {
@@ -21,9 +22,9 @@ export default function ProductDetail({ product, related }: Props) {
     const [selectedColorIndex, setSelectedColorIndex] = useState(0);
     const [selectedSize, setSelectedSize] = useState<keyof ProductSizes>("M");
     const [quantity, setQuantity] = useState(1);
-    const [addedMessage, setAddedMessage] = useState(false);
 
     const { addItem, openCart } = useCart();
+    const { showToast } = useToast();
 
     const currentSizes: ProductSizes = hasColors
         ? product.colors[selectedColorIndex]?.sizes || defaultSizes
@@ -78,9 +79,8 @@ export default function ProductDetail({ product, related }: Props) {
             color: currentColorName || "افتراضي",
             quantity,
         });
-        setAddedMessage(true);
+        showToast("تمت الإضافة للسلة", "success");
         openCart();
-        setTimeout(() => setAddedMessage(false), 2500);
     };
 
     const handleSizeChange = (size: keyof ProductSizes) => {
@@ -146,7 +146,9 @@ export default function ProductDetail({ product, related }: Props) {
                     <h1 className="text-2xl md:text-4xl font-bold text-charcoal mb-2">
                         {product.name}
                     </h1>
-                    <p className="text-muted mb-4 md:mb-6 text-sm md:text-base">{product.nameEn}</p>
+                    <p className="text-muted mb-4 md:mb-6 text-sm md:text-base">
+                        {product.nameEn}
+                    </p>
 
                     {/* Price */}
                     <p className="text-2xl md:text-3xl font-bold text-charcoal mb-3 md:mb-4">
@@ -155,7 +157,9 @@ export default function ProductDetail({ product, related }: Props) {
 
                     {/* Stock Status */}
                     {isOutOfStock ? (
-                        <p className="text-sm text-error font-medium mb-4 md:mb-6">نفد المخزون</p>
+                        <p className="text-sm text-error font-medium mb-4 md:mb-6">
+                            نفد المخزون
+                        </p>
                     ) : totalCurrentStock < 10 ? (
                         <p className="text-sm text-gold font-medium mb-4 md:mb-6">
                             باقي {totalCurrentStock} قطع فقط
@@ -292,13 +296,6 @@ export default function ProductDetail({ product, related }: Props) {
                         </p>
                     )}
 
-                    {/* Feedback */}
-                    {addedMessage && (
-                        <div className="bg-success/10 text-success border border-success/30 rounded-md p-3 text-sm text-center mb-4 md:mb-6 mt-2 animate-fade-down">
-                            ✓ تمت الإضافة للسلة
-                        </div>
-                    )}
-
                     {/* Info Boxes */}
                     <div className="border-t border-charcoal/10 pt-5 md:pt-6 space-y-2 md:space-y-3 text-sm text-charcoal/70">
                         <p>✓ شحن مجاني للطلبات أكثر من 500 ج.م</p>
@@ -343,7 +340,9 @@ export default function ProductDetail({ product, related }: Props) {
                                         <h3 className="text-xs md:text-sm font-medium text-charcoal mb-1 group-hover:text-gold transition-colors">
                                             {p.name}
                                         </h3>
-                                        <p className="text-[10px] md:text-xs text-muted mb-2">{p.nameEn}</p>
+                                        <p className="text-[10px] md:text-xs text-muted mb-2">
+                                            {p.nameEn}
+                                        </p>
                                         <p className="text-sm md:text-base font-semibold text-charcoal">
                                             {p.price} <span className="text-xs">ج.م</span>
                                         </p>

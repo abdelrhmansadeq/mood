@@ -12,6 +12,8 @@ import { ProductsProvider } from "@/components/products-context";
 import { AdminProvider } from "@/components/admin-context";
 import { WishlistProvider } from "@/components/wishlist-context";
 import { AuthProvider } from "@/components/auth-context";
+import { ToastProvider } from "@/components/toast-context";
+import Toaster from "@/components/toaster";
 
 const inter = Inter({
     subsets: ["latin"],
@@ -44,25 +46,28 @@ export default function RootLayout({
             className={`${inter.variable} ${plexArabic.variable}`}
         >
         <body className="font-arabic bg-cream text-charcoal antialiased">
-        <AuthProvider>
-            <ProductsProvider>
-                <AdminProvider>
-                    <WishlistProvider>
-                        <CartProvider>
-                            <Navbar />
-                            <CartDrawer />
-                            <WhatsAppButton />
-                            <AIAssistant />
-                            <main className="pt-24 pb-20 md:pb-0 min-h-screen">
-                                {children}
-                            </main>
-                            <Footer />
-                            <MobileNav />
-                        </CartProvider>
-                    </WishlistProvider>
-                </AdminProvider>
-            </ProductsProvider>
-        </AuthProvider>
+        <ToastProvider>
+            <AuthProvider>
+                <ProductsProvider>
+                    <AdminProvider>
+                        <WishlistProvider>
+                            <CartProvider>
+                                <Navbar />
+                                <CartDrawer />
+                                <WhatsAppButton />
+                                <AIAssistant />
+                                <Toaster />
+                                <main className="pt-24 pb-20 md:pb-0 min-h-screen">
+                                    {children}
+                                </main>
+                                <Footer />
+                                <MobileNav />
+                            </CartProvider>
+                        </WishlistProvider>
+                    </AdminProvider>
+                </ProductsProvider>
+            </AuthProvider>
+        </ToastProvider>
         </body>
         </html>
     );

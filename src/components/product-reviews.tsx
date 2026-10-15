@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "./auth-context";
+import { useToast } from "./toast-context";
 import {
     fetchProductReviews,
     fetchUserReview,
@@ -19,12 +20,12 @@ type Props = {
 
 export default function ProductReviews({ productId }: Props) {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const [reviews, setReviews] = useState<Review[]>([]);
     const [userReview, setUserReview] = useState<Review | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
 
-    // Form state
     const [rating, setRating] = useState(5);
     const [hoverRating, setHoverRating] = useState(0);
     const [comment, setComment] = useState("");
@@ -72,6 +73,7 @@ export default function ProductReviews({ productId }: Props) {
                 setReviews((prev) =>
                     prev.map((r) => (r.id === updated.id ? updated : r))
                 );
+                showToast("تم تحديث التقييم", "success");
             } else {
                 const created = await createReview({
                     productId,
@@ -82,6 +84,7 @@ export default function ProductReviews({ productId }: Props) {
                 });
                 setUserReview(created);
                 setReviews((prev) => [created, ...prev]);
+                showToast("تم إضافة التقييم", "success");
             }
             setIsEditing(false);
         } catch (e) {
@@ -103,9 +106,10 @@ export default function ProductReviews({ productId }: Props) {
             setRating(5);
             setComment("");
             setIsEditing(false);
+            showToast("تم حذف التقييم", "success");
         } catch (e) {
             console.error(e);
-            alert("حصلت مشكلة في الحذف");
+            showToast("حصلت مشكلة في الحذف", "error");
         }
     };
 
@@ -138,9 +142,7 @@ export default function ProductReviews({ productId }: Props) {
                         <div className="text-sm">
                             <span className="font-bold text-charcoal">{avgRating}</span>
                             <span className="text-muted"> من 5</span>
-                            <p className="text-xs text-muted">
-                                ({reviews.length} تقييم)
-                            </p>
+                            <p className="text-xs text-muted">({reviews.length} تقييم)</p>
                         </div>
                     </div>
                 )}
@@ -161,7 +163,6 @@ export default function ProductReviews({ productId }: Props) {
                         </Link>
                     </div>
                 ) : userReview && !isEditing ? (
-                    // عرض تقييم المستخدم
                     <div className="bg-white rounded-lg border border-gold/30 p-6">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-3">
@@ -192,7 +193,6 @@ export default function ProductReviews({ productId }: Props) {
                         )}
                     </div>
                 ) : (
-                    // فورم الإضافة/التعديل
                     <form
                         onSubmit={handleSubmit}
                         className="bg-white rounded-lg border border-charcoal/10 p-6"
@@ -201,7 +201,6 @@ export default function ProductReviews({ productId }: Props) {
                             {userReview ? "عدّل تقييمك" : "أضف تقييمك"}
                         </h3>
 
-                        {/* Stars */}
                         <div className="mb-5">
                             <label className="block text-sm font-medium text-charcoal mb-2">
                                 التقييم
@@ -217,16 +216,12 @@ export default function ProductReviews({ productId }: Props) {
                                         className="p-1 transition-transform hover:scale-110"
                                         aria-label={`${star} نجوم`}
                                     >
-                                        <Star
-                                            filled={star <= (hoverRating || rating)}
-                                            size="lg"
-                                        />
+                                        <Star filled={star <= (hoverRating || rating)} size="lg" />
                                     </button>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Comment */}
                         <div className="mb-5">
                             <label className="block text-sm font-medium text-charcoal mb-2">
                                 تعليقك (اختياري)

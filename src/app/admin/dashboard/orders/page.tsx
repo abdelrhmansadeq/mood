@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAdmin } from "@/components/admin-context";
+import { useToast } from "@/components/toast-context";
 import {
     fetchAllOrders,
     updateOrderStatus,
@@ -23,6 +24,7 @@ const STATUS_OPTIONS: {
 
 export default function AdminOrdersPage() {
     const { isLoggedIn } = useAdmin();
+    const { showToast } = useToast();
     const [orders, setOrders] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [filter, setFilter] = useState<Order["status"] | "all">("all");
@@ -55,7 +57,9 @@ export default function AdminOrdersPage() {
         if (result.error) {
             // Rollback
             setOrders(previousOrders);
-            alert(result.error);
+            showToast(result.error, "error");
+        } else {
+            showToast("تم تحديث حالة الطلب", "success");
         }
 
         setUpdatingId(null);

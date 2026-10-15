@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAdmin } from "@/components/admin-context";
 import { useProducts } from "@/components/products-context";
+import { useToast } from "@/components/toast-context";
 import type {
     Product,
     ProductSizes,
@@ -57,6 +58,7 @@ export default function AdminProductsPage() {
     const { isLoggedIn } = useAdmin();
     const { products, addProduct, updateProduct, deleteProduct, resetProducts } =
         useProducts();
+    const { showToast } = useToast();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
@@ -176,8 +178,9 @@ export default function AdminProductsPage() {
         });
 
         if (incompleteColors.length > 0) {
-            alert(
-                `الألوان دي ناقصة: ${incompleteColors.join(", ")}.\nلازم كل لون يكون له اسم ورابط صورة.`
+            showToast(
+                `الألوان دي ناقصة: ${incompleteColors.join(", ")}`,
+                "error"
             );
             return;
         }
@@ -189,8 +192,10 @@ export default function AdminProductsPage() {
 
         if (editingId) {
             updateProduct(editingId, productData);
+            showToast("تم حفظ التعديلات بنجاح", "success");
         } else {
             addProduct(productData);
+            showToast("تم إضافة المنتج بنجاح", "success");
         }
         setIsModalOpen(false);
         setFormData(emptyForm);
@@ -200,6 +205,7 @@ export default function AdminProductsPage() {
     const handleDelete = (id: number) => {
         deleteProduct(id);
         setConfirmDeleteId(null);
+        showToast("تم حذف المنتج", "success");
     };
 
     return (
@@ -222,7 +228,10 @@ export default function AdminProductsPage() {
                 </div>
                 <div className="flex gap-3">
                     <button
-                        onClick={resetProducts}
+                        onClick={async () => {
+                            await resetProducts();
+                            showToast("تم استرجاع المنتجات الافتراضية", "success");
+                        }}
                         className="text-sm text-muted hover:text-charcoal border border-charcoal/15 hover:border-charcoal/30 px-4 py-2 rounded-md transition-colors"
                     >
                         استرجاع الافتراضي
