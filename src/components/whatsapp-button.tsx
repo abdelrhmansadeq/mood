@@ -1,7 +1,15 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+
 export default function WhatsAppButton() {
+    const pathname = usePathname();
     const phone = "201014766903";
     const message = encodeURIComponent("مرحباً، عندي استفسار عن منتجات Mood");
     const url = `https://wa.me/${phone}?text=${message}`;
+
+    // نكتشف لو إحنا في صفحة تفاصيل منتج
+    const isProductPage = /^\/products\/\d+/.test(pathname);
 
     return (
         <a
@@ -9,12 +17,14 @@ export default function WhatsAppButton() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="تواصل عبر واتساب"
-            className="fixed bottom-6 left-6 z-40 w-14 h-14 bg-[#25D366] hover:bg-[#1EBE57] rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110"
+            className={`fixed left-4 md:left-6 z-30 w-12 h-12 md:w-14 md:h-14 bg-[#25D366] hover:bg-[#1EBE57] rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-110 ${
+                isProductPage ? "bottom-36" : "bottom-20"
+            } md:bottom-6`}
         >
             <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="28"
-                height="28"
+                width="22"
+                height="22"
                 viewBox="0 0 24 24"
                 fill="white"
             >

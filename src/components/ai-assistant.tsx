@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import type { FormEvent } from "react";
+import { usePathname } from "next/navigation";
 
 type Message = {
     role: "user" | "assistant";
@@ -9,6 +10,9 @@ type Message = {
 };
 
 export default function AIAssistant() {
+    const pathname = usePathname();
+    const isProductPage = /^\/products\/\d+/.test(pathname);
+
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
         {
@@ -69,14 +73,16 @@ export default function AIAssistant() {
             <button
                 onClick={() => setIsOpen(true)}
                 aria-label="افتح المساعد الذكي"
-                className={`fixed bottom-6 right-6 z-40 w-14 h-14 bg-gradient-to-br from-gold to-gold-dark hover:scale-110 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all ${
+                className={`fixed right-4 md:right-6 z-30 w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-gold to-gold-dark hover:scale-110 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all ${
+                    isProductPage ? "bottom-36" : "bottom-20"
+                } md:bottom-6 ${
                     isOpen ? "scale-0 opacity-0" : "scale-100 opacity-100"
                 }`}
             >
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    width="26"
-                    height="26"
+                    width="22"
+                    height="22"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="white"
@@ -103,7 +109,7 @@ export default function AIAssistant() {
                         className="fixed inset-0 bg-charcoal/30 z-[80] md:hidden"
                     />
 
-                    <div className="fixed bottom-6 right-6 z-[90] w-[calc(100vw-3rem)] max-w-md h-[600px] max-h-[calc(100vh-3rem)] bg-cream rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-charcoal/10">
+                    <div className="fixed bottom-6 right-4 left-4 md:right-6 md:left-auto z-[90] md:w-96 md:max-w-md h-[70vh] md:h-[600px] max-h-[calc(100vh-6rem)] bg-cream rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-charcoal/10">
                         {/* Header */}
                         <div className="bg-gradient-to-r from-charcoal to-charcoal/90 text-cream p-4 flex items-center justify-between">
                             <div className="flex items-center gap-3">

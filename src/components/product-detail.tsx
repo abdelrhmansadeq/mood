@@ -98,9 +98,9 @@ export default function ProductDetail({ product, related }: Props) {
         : totalCurrentStock;
 
     return (
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8 md:py-12 pb-32 md:pb-12">
             {/* Breadcrumbs */}
-            <nav className="text-sm text-muted mb-8 animate-fade-in">
+            <nav className="text-sm text-muted mb-8 animate-fade-in hidden md:block">
                 <Link href="/" className="hover:text-gold">الرئيسية</Link>
                 <span className="mx-2">/</span>
                 <Link href="/products" className="hover:text-gold">المنتجات</Link>
@@ -109,7 +109,7 @@ export default function ProductDetail({ product, related }: Props) {
             </nav>
 
             {/* Main Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 mb-20">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 mb-20">
                 {/* Image */}
                 <div
                     className="relative w-full rounded-lg overflow-hidden bg-cream animate-fade-in"
@@ -143,37 +143,37 @@ export default function ProductDetail({ product, related }: Props) {
                     </p>
 
                     {/* Title */}
-                    <h1 className="text-3xl md:text-4xl font-bold text-charcoal mb-2">
+                    <h1 className="text-2xl md:text-4xl font-bold text-charcoal mb-2">
                         {product.name}
                     </h1>
-                    <p className="text-muted mb-6">{product.nameEn}</p>
+                    <p className="text-muted mb-4 md:mb-6 text-sm md:text-base">{product.nameEn}</p>
 
                     {/* Price */}
-                    <p className="text-3xl font-bold text-charcoal mb-4">
+                    <p className="text-2xl md:text-3xl font-bold text-charcoal mb-3 md:mb-4">
                         {product.price} <span className="text-lg">ج.م</span>
                     </p>
 
                     {/* Stock Status */}
                     {isOutOfStock ? (
-                        <p className="text-sm text-error font-medium mb-6">نفد المخزون</p>
+                        <p className="text-sm text-error font-medium mb-4 md:mb-6">نفد المخزون</p>
                     ) : totalCurrentStock < 10 ? (
-                        <p className="text-sm text-gold font-medium mb-6">
+                        <p className="text-sm text-gold font-medium mb-4 md:mb-6">
                             باقي {totalCurrentStock} قطع فقط
                         </p>
                     ) : (
-                        <p className="text-sm text-success font-medium mb-6">
+                        <p className="text-sm text-success font-medium mb-4 md:mb-6">
                             متوفر ({totalCurrentStock} قطعة)
                         </p>
                     )}
 
                     {/* Description */}
-                    <p className="text-charcoal/80 leading-relaxed mb-8">
+                    <p className="text-charcoal/80 leading-relaxed mb-6 md:mb-8 text-sm md:text-base">
                         {product.description}
                     </p>
 
                     {/* Color Picker */}
                     {hasColors && (
-                        <div className="mb-6">
+                        <div className="mb-5 md:mb-6">
                             <div className="flex items-center justify-between mb-3">
                                 <label className="text-sm font-medium text-charcoal">اللون</label>
                                 <span className="text-sm text-muted flex items-center gap-2">
@@ -195,7 +195,7 @@ export default function ProductDetail({ product, related }: Props) {
                                             onClick={() => handleColorChange(idx)}
                                             aria-label={color.name}
                                             title={`${color.name} (${colorStock} قطعة)`}
-                                            className={`relative w-12 h-12 rounded-full border-2 transition-all ${
+                                            className={`relative w-11 h-11 md:w-12 md:h-12 rounded-full border-2 transition-all ${
                                                 selectedColorIndex === idx
                                                     ? "border-gold scale-110"
                                                     : "border-charcoal/20 hover:border-charcoal/50"
@@ -218,7 +218,7 @@ export default function ProductDetail({ product, related }: Props) {
                     )}
 
                     {/* Size Picker */}
-                    <div className="mb-6">
+                    <div className="mb-5 md:mb-6">
                         <div className="flex items-center justify-between mb-3">
                             <label className="text-sm font-medium text-charcoal">المقاس</label>
                             <span className="text-sm text-muted">
@@ -235,7 +235,7 @@ export default function ProductDetail({ product, related }: Props) {
                                         key={size}
                                         onClick={() => !disabled && handleSizeChange(size)}
                                         disabled={disabled}
-                                        className={`relative w-14 h-12 rounded-md text-sm font-medium border transition-all ${
+                                        className={`relative w-12 h-11 md:w-14 md:h-12 rounded-md text-sm font-medium border transition-all ${
                                             isSelected
                                                 ? "border-charcoal bg-charcoal text-cream scale-105"
                                                 : disabled
@@ -250,8 +250,8 @@ export default function ProductDetail({ product, related }: Props) {
                         </div>
                     </div>
 
-                    {/* Quantity + Add to Cart */}
-                    <div className="flex items-center gap-4 mb-2">
+                    {/* Quantity + Add to Cart (Desktop) */}
+                    <div className="hidden md:flex items-center gap-4 mb-2">
                         <div className="flex items-center border border-charcoal/20 rounded-md">
                             <button
                                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -275,7 +275,7 @@ export default function ProductDetail({ product, related }: Props) {
                         <button
                             onClick={handleAddToCart}
                             disabled={!canAddToCart}
-                            className="flex-1 bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-charcoal disabled:hover:text-cream"
+                            className="flex-1 bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             {isOutOfStock
                                 ? "نفد المخزون"
@@ -287,20 +287,20 @@ export default function ProductDetail({ product, related }: Props) {
 
                     {/* Max Reached */}
                     {reachedMax && canAddToCart && (
-                        <p className="text-xs text-gold mb-6">
+                        <p className="text-xs text-gold mb-4 md:mb-6">
                             وصلت للحد الأقصى المتاح ({sizeStock} قطعة)
                         </p>
                     )}
 
                     {/* Feedback */}
                     {addedMessage && (
-                        <div className="bg-success/10 text-success border border-success/30 rounded-md p-3 text-sm text-center mb-6 mt-2 animate-fade-down">
+                        <div className="bg-success/10 text-success border border-success/30 rounded-md p-3 text-sm text-center mb-4 md:mb-6 mt-2 animate-fade-down">
                             ✓ تمت الإضافة للسلة
                         </div>
                     )}
 
                     {/* Info Boxes */}
-                    <div className="border-t border-charcoal/10 pt-6 space-y-3 text-sm text-charcoal/70">
+                    <div className="border-t border-charcoal/10 pt-5 md:pt-6 space-y-2 md:space-y-3 text-sm text-charcoal/70">
                         <p>✓ شحن مجاني للطلبات أكثر من 500 ج.م</p>
                         <p>✓ إرجاع مجاني خلال 14 يوم</p>
                         <p>✓ دعم 24/7</p>
@@ -311,10 +311,10 @@ export default function ProductDetail({ product, related }: Props) {
             {/* Related Products */}
             {related.length > 0 && (
                 <section>
-                    <h2 className="text-2xl font-bold text-charcoal mb-6 animate-fade-up">
+                    <h2 className="text-xl md:text-2xl font-bold text-charcoal mb-5 md:mb-6 animate-fade-up">
                         منتجات مشابهة
                     </h2>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                         {related.map((p, idx) => (
                             <div
                                 key={p.id}
@@ -339,12 +339,12 @@ export default function ProductDetail({ product, related }: Props) {
                                             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                         />
                                     </div>
-                                    <div className="p-4">
-                                        <h3 className="text-sm font-medium text-charcoal mb-1 group-hover:text-gold transition-colors">
+                                    <div className="p-3 md:p-4">
+                                        <h3 className="text-xs md:text-sm font-medium text-charcoal mb-1 group-hover:text-gold transition-colors">
                                             {p.name}
                                         </h3>
-                                        <p className="text-xs text-muted mb-2">{p.nameEn}</p>
-                                        <p className="text-base font-semibold text-charcoal">
+                                        <p className="text-[10px] md:text-xs text-muted mb-2">{p.nameEn}</p>
+                                        <p className="text-sm md:text-base font-semibold text-charcoal">
                                             {p.price} <span className="text-xs">ج.م</span>
                                         </p>
                                     </div>
@@ -357,6 +357,53 @@ export default function ProductDetail({ product, related }: Props) {
 
             {/* Reviews */}
             <ProductReviews productId={product.id} />
+
+            {/* ==== MOBILE STICKY BAR ==== */}
+            <div
+                className="md:hidden fixed bottom-16 inset-x-0 z-30 bg-cream/95 backdrop-blur-md border-t border-charcoal/10 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]"
+                style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+            >
+                <div className="flex items-center gap-2 p-3">
+                    {/* Quantity */}
+                    <div className="flex items-center border border-charcoal/20 rounded-md bg-white">
+                        <button
+                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                            disabled={!canAddToCart}
+                            className="w-8 h-11 text-charcoal transition-colors disabled:opacity-40"
+                            aria-label="تقليل"
+                        >
+                            −
+                        </button>
+                        <span className="w-8 text-center text-sm font-medium">{quantity}</span>
+                        <button
+                            onClick={() => setQuantity(Math.min(sizeStock, quantity + 1))}
+                            disabled={!canAddToCart || reachedMax}
+                            className="w-8 h-11 text-charcoal transition-colors disabled:opacity-40"
+                            aria-label="زيادة"
+                        >
+                            +
+                        </button>
+                    </div>
+
+                    {/* Add to Cart */}
+                    <button
+                        onClick={handleAddToCart}
+                        disabled={!canAddToCart}
+                        className="flex-1 bg-charcoal text-cream font-semibold h-11 rounded-md text-sm transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-between px-4"
+                    >
+            <span>
+              {isOutOfStock
+                  ? "نفد المخزون"
+                  : sizeStock === 0
+                      ? "المقاس غير متوفر"
+                      : "أضف للسلة"}
+            </span>
+                        <span className="text-gold font-bold">
+              {product.price * quantity} ج.م
+            </span>
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }

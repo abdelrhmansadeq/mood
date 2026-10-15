@@ -126,9 +126,11 @@ export default function ProductsPage() {
                 </div>
             </div>
 
-            <p className="text-sm text-muted mb-6">
-                {filteredProducts.length} منتج
-            </p>
+            {!isLoading && (
+                <p className="text-sm text-muted mb-6">
+                    {filteredProducts.length} منتج
+                </p>
+            )}
 
             {isLoading ? (
                 <ProductGridSkeleton count={8} />
