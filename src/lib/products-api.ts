@@ -13,6 +13,8 @@ type SupabaseProduct = {
     stock: number;
     sizes: ProductSizes;
     colors: ProductColorVariant[];
+    avg_rating: number | null;
+    reviews_count: number | null;
     created_at: string;
 };
 
@@ -31,6 +33,8 @@ function toProduct(row: SupabaseProduct): Product {
         stock: row.stock,
         sizes: row.sizes || defaultSizes,
         colors: row.colors || [],
+        avgRating: row.avg_rating ? Number(row.avg_rating) : 0,
+        reviewsCount: row.reviews_count || 0,
     };
 }
 
@@ -38,7 +42,6 @@ function calculateTotalStock(
     sizes: ProductSizes,
     colors: ProductColorVariant[]
 ): number {
-    // لو في ألوان: الإجمالي = مجموع كل الألوان × كل المقاسات
     if (colors && colors.length > 0) {
         return colors.reduce((total, color) => {
             return (
@@ -47,7 +50,6 @@ function calculateTotalStock(
             );
         }, 0);
     }
-    // لو مفيش ألوان: الإجمالي = مجموع الـ sizes
     return Object.values(sizes || defaultSizes).reduce((a, b) => a + b, 0);
 }
 
@@ -114,7 +116,6 @@ export async function updateProductInDB(
     if (updates.sizes !== undefined) dbUpdates.sizes = updates.sizes;
     if (updates.colors !== undefined) dbUpdates.colors = updates.colors;
 
-    // نعيد حساب الإجمالي
     if (updates.sizes !== undefined || updates.colors !== undefined) {
         const sizes = updates.sizes ?? defaultSizes;
         const colors = updates.colors ?? [];
@@ -143,30 +144,4 @@ export async function deleteProductFromDB(id: number): Promise<void> {
         console.error("Error deleting product:", error);
         throw error;
     }
-}
-
-export async function resetProductsInDB(): Promise<void> {
-    const { error: deleteError } = await supabase
-        .from("products")
-        .delete()
-        .gte("id", 0);
-    if (deleteError) throw deleteError;
-
-    const { products: seedProducts } = await import("@/data/products");
-
-    const rows = seedProducts.map((p) => ({
-        name: p.name,
-        name_en: p.nameEn,
-        price: p.price,
-        image: p.image,
-        category: p.category,
-        description: p.description,
-        is_featured: p.isFeatured || false,
-        stock: calculateTotalStock(p.sizes, p.colors || []),
-        sizes: p.sizes,
-        colors: p.colors || [],
-    }));
-
-    const { error: insertError } = await supabase.from("products").insert(rows);
-    if (insertError) throw insertError;
 }

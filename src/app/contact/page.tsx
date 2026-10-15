@@ -25,14 +25,14 @@ export default function ContactPage() {
     };
 
     const contactInfo = [
-        { label: "التليفون", value: "01014766905" },
+        { label: "التليفون", value: "01014766903" },
         { label: "الإيميل", value: "abdelrhman@gmail.com" },
         { label: "العنوان", value: "دمياط الجديدة، مصر" },
     ];
 
     return (
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-16">
-            <div className="text-center mb-12">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-16 animate-fade-in">
+            <div className="text-center mb-12 animate-fade-up">
                 <p className="text-gold text-xs font-medium tracking-widest uppercase mb-3">
                     Contact
                 </p>
@@ -46,7 +46,10 @@ export default function ContactPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Form */}
-                <div className="lg:col-span-2">
+                <div
+                    className="lg:col-span-2 animate-fade-up opacity-0"
+                    style={{ animationDelay: "150ms", animationFillMode: "forwards" }}
+                >
                     <form
                         onSubmit={handleSubmit}
                         className="bg-white rounded-lg border border-charcoal/10 p-8 space-y-5"
@@ -97,7 +100,7 @@ export default function ContactPage() {
                         </div>
 
                         {sent && (
-                            <div className="bg-success/10 text-success border border-success/30 rounded-md p-3 text-sm">
+                            <div className="bg-success/10 text-success border border-success/30 rounded-md p-3 text-sm animate-fade-down">
                                 ✓ تم استلام رسالتك. هنتواصل معاك قريباً.
                             </div>
                         )}
@@ -113,12 +116,18 @@ export default function ContactPage() {
 
                 {/* Contact Info */}
                 <div className="space-y-4">
-                    {contactInfo.map((info) => (
+                    {contactInfo.map((info, idx) => (
                         <div
                             key={info.label}
-                            className="bg-white rounded-lg border border-charcoal/10 p-5"
+                            className="bg-white rounded-lg border border-charcoal/10 p-5 animate-fade-up opacity-0"
+                            style={{
+                                animationDelay: `${300 + idx * 100}ms`,
+                                animationFillMode: "forwards",
+                            }}
                         >
-                            <p className="text-xs text-gold font-medium mb-1">{info.label}</p>
+                            <p className="text-xs text-gold font-medium mb-1">
+                                {info.label}
+                            </p>
                             <p className="text-charcoal font-medium" dir="ltr">
                                 {info.value}
                             </p>

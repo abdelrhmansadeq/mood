@@ -75,13 +75,54 @@ export default function ProductCard({ product }: Props) {
                     {product.name}
                 </h3>
                 <p className="text-xs text-muted mb-2">{product.nameEn}</p>
+
+                {/* Rating */}
+                {product.reviewsCount && product.reviewsCount > 0 ? (
+                    <div className="flex items-center gap-1.5 mb-2">
+                        <Stars value={product.avgRating || 0} />
+                        <span className="text-xs text-muted">
+              ({product.reviewsCount})
+            </span>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-1.5 mb-2">
+                        <Stars value={0} />
+                        <span className="text-[10px] text-muted">لا يوجد تقييمات</span>
+                    </div>
+                )}
+
                 <p className="text-base font-semibold text-charcoal">
                     {product.price} <span className="text-xs">ج.م</span>
                 </p>
                 {isOutOfStock && (
-                    <p className="text-xs text-error font-medium mt-1">غير متوفر حالياً</p>
+                    <p className="text-xs text-error font-medium mt-1">
+                        غير متوفر حالياً
+                    </p>
                 )}
             </div>
         </Link>
+    );
+}
+
+/* === Stars Component === */
+function Stars({ value }: { value: number }) {
+    return (
+        <div className="flex gap-0.5" dir="ltr">
+            {[1, 2, 3, 4, 5].map((star) => (
+                <svg
+                    key={star}
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill={star <= Math.round(value) ? "#C89B5A" : "none"}
+                    stroke={star <= Math.round(value) ? "#C89B5A" : "#B0B0B0"}
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-3 h-3"
+                >
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+            ))}
+        </div>
     );
 }

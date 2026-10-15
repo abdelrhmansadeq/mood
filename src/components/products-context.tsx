@@ -7,7 +7,6 @@ import {
     addProductToDB,
     updateProductInDB,
     deleteProductFromDB,
-    resetProductsInDB,
 } from "@/lib/products-api";
 
 type ProductsContextType = {
@@ -17,7 +16,6 @@ type ProductsContextType = {
     addProduct: (product: Omit<Product, "id">) => Promise<void>;
     updateProduct: (id: number, updates: Partial<Product>) => Promise<void>;
     deleteProduct: (id: number) => Promise<void>;
-    resetProducts: () => Promise<void>;
     refreshProducts: () => Promise<void>;
 };
 
@@ -43,7 +41,7 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     };
 
     useEffect(() => {
-        loadProducts();
+        void loadProducts();
     }, []);
 
     const addProduct = async (product: Omit<Product, "id">) => {
@@ -76,19 +74,6 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const resetProducts = async () => {
-        try {
-            setIsLoading(true);
-            await resetProductsInDB();
-            await loadProducts();
-        } catch (e) {
-            console.error("Failed to reset products:", e);
-            setError("حصلت مشكلة في استرجاع المنتجات");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     return (
         <ProductsContext.Provider
             value={{
@@ -98,7 +83,6 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
                 addProduct,
                 updateProduct,
                 deleteProduct,
-                resetProducts,
                 refreshProducts: loadProducts,
             }}
         >

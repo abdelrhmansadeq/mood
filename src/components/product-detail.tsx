@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Product, ProductSizes } from "@/data/products";
 import { useCart } from "./cart-context";
 import { useToast } from "./toast-context";
+import { useWishlist } from "./wishlist-context";
 import ProductReviews from "./product-reviews";
 
 type Props = {
@@ -25,6 +26,8 @@ export default function ProductDetail({ product, related }: Props) {
 
     const { addItem, openCart } = useCart();
     const { showToast } = useToast();
+    const { toggleItem, isInWishlist } = useWishlist();
+    const isFavorite = isInWishlist(product.id);
 
     const currentSizes: ProductSizes = hasColors
         ? product.colors[selectedColorIndex]?.sizes || defaultSizes
@@ -143,9 +146,40 @@ export default function ProductDetail({ product, related }: Props) {
                     </p>
 
                     {/* Title */}
-                    <h1 className="text-2xl md:text-4xl font-bold text-charcoal mb-2">
-                        {product.name}
-                    </h1>
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                        <h1 className="text-2xl md:text-4xl font-bold text-charcoal">
+                            {product.name}
+                        </h1>
+                        <button
+                            onClick={() => {
+                                toggleItem(product.id);
+                                showToast(
+                                    isFavorite ? "تمت الإزالة من المفضلة" : "تمت الإضافة للمفضلة",
+                                    "success"
+                                );
+                            }}
+                            aria-label={isFavorite ? "إزالة من المفضلة" : "أضف للمفضلة"}
+                            className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center border-2 transition-all ${
+                                isFavorite
+                                    ? "bg-error border-error text-white"
+                                    : "bg-white border-charcoal/15 text-charcoal hover:border-error hover:text-error"
+                            }`}
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill={isFavorite ? "currentColor" : "none"}
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                            </svg>
+                        </button>
+                    </div>
                     <p className="text-muted mb-4 md:mb-6 text-sm md:text-base">
                         {product.nameEn}
                     </p>
