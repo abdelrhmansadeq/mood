@@ -25,11 +25,13 @@ export type Order = {
     items: OrderItem[];
     status: "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
     createdAt: string;
+    userEmail: string | null;
 };
 
 type SupabaseOrder = {
     id: number;
     user_id: string;
+    user_email: string | null;
     order_number: string;
     full_name: string;
     phone: string;
@@ -59,6 +61,7 @@ function toOrder(row: SupabaseOrder): Order {
         items: row.items,
         status: row.status,
         createdAt: row.created_at,
+        userEmail: row.user_email,
     };
 }
 
@@ -71,7 +74,6 @@ export async function createOrder(params: {
     items: OrderItem[];
 }): Promise<{ order?: Order; error?: string }> {
     try {
-        // ✅ ناخد الـ session الحالي عشان نبعت الـ token
         const {
             data: { session },
         } = await supabase.auth.getSession();
@@ -110,6 +112,7 @@ export async function createOrder(params: {
                 items: data.order.items,
                 status: data.order.status,
                 createdAt: data.order.created_at,
+                userEmail: data.order.user_email,
             },
         };
     } catch (e) {
@@ -151,7 +154,6 @@ export async function fetchOrderById(orderId: number): Promise<Order | null> {
 }
 
 export async function fetchAllOrders(): Promise<Order[]> {
-    // ناخد الـ session
     const {
         data: { session },
     } = await supabase.auth.getSession();
@@ -180,7 +182,6 @@ export async function updateOrderStatus(
     status: Order["status"]
 ): Promise<{ error?: string }> {
     try {
-        // ناخد الـ session
         const {
             data: { session },
         } = await supabase.auth.getSession();
@@ -210,7 +211,6 @@ export async function updateOrderStatus(
         return { error: "حصلت مشكلة في الاتصال" };
     }
 }
-
 
 export async function cancelOrder(orderId: number): Promise<{ error?: string }> {
     try {

@@ -72,6 +72,7 @@ export async function POST(request: Request) {
         }
 
         const userId = authUser.id;
+        const userEmail = authUser.email || "";
 
         // 1) نجيب المنتجات من الداتابيز
         const productIds = items.map((i) => i.productId);
@@ -225,6 +226,7 @@ export async function POST(request: Request) {
             .from("orders")
             .insert({
                 user_id: userId,
+                user_email: userEmail,
                 order_number: orderNumber,
                 full_name: fullName,
                 phone,

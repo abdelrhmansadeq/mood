@@ -31,10 +31,8 @@ export default function AdminOrdersPage() {
     const [filter, setFilter] = useState<Order["status"] | "all">("all");
     const [updatingId, setUpdatingId] = useState<number | null>(null);
 
-    // ✅ Realtime - بيستمع لأي تغيير في الطلبات
     const lastRealtimeEvent = useRealtimeAllOrders();
 
-    // Load initial orders
     useEffect(() => {
         if (!isLoggedIn) return;
         fetchAllOrders()
@@ -43,7 +41,6 @@ export default function AdminOrdersPage() {
             .finally(() => setIsLoading(false));
     }, [isLoggedIn]);
 
-    // ✅ إعادة تحميل الطلبات لما يجي event جديد من Realtime
     useEffect(() => {
         if (!lastRealtimeEvent || !isLoggedIn) return;
 
@@ -59,7 +56,6 @@ export default function AdminOrdersPage() {
         orderId: number,
         newStatus: Order["status"]
     ) => {
-        // Optimistic update
         const previousOrders = orders;
         setOrders((prev) =>
             prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
@@ -69,7 +65,6 @@ export default function AdminOrdersPage() {
         const result = await updateOrderStatus(orderId, newStatus);
 
         if (result.error) {
-            // Rollback
             setOrders(previousOrders);
             showToast(result.error, "error");
         } else {
@@ -175,7 +170,6 @@ export default function AdminOrdersPage() {
                                         </div>
                                     </div>
 
-                                    {/* Status */}
                                     <div className="flex items-center gap-2">
                     <span
                         className={`px-3 py-1 rounded-full text-xs font-medium ${currentStatus.color}`}
@@ -210,6 +204,18 @@ export default function AdminOrdersPage() {
                                             {order.phone}
                                         </p>
                                     </div>
+                                    {order.userEmail && (
+                                        <div>
+                                            <p className="text-xs text-muted mb-1">الإيميل</p>
+                                            <a
+                                                href={`mailto:${order.userEmail}`}
+                                                className="text-charcoal hover:text-gold transition-colors break-all"
+                                                dir="ltr"
+                                            >
+                                                {order.userEmail}
+                                            </a>
+                                        </div>
+                                    )}
                                     <div>
                                         <p className="text-xs text-muted mb-1">المدينة</p>
                                         <p className="text-charcoal">{order.city}</p>

@@ -100,7 +100,7 @@ export default function DashboardPage() {
                         الرسائل
                     </h3>
                     <p className="text-sm text-muted">
-                        شوف رسائل العملاء من صفحة "تواصل معنا"
+                        شوف رسائل العملاء من صفحة &quot;تواصل معنا&quot;
                     </p>
                 </Link>
 
