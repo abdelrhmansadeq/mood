@@ -64,7 +64,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Quick Links */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Link
                     href="/admin/dashboard/products"
                     className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up opacity-0"
@@ -92,9 +92,22 @@ export default function DashboardPage() {
                 </Link>
 
                 <Link
-                    href="/products"
+                    href="/admin/dashboard/messages"
                     className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up opacity-0"
                     style={{ animationDelay: "560ms", animationFillMode: "forwards" }}
+                >
+                    <h3 className="text-lg font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors">
+                        الرسائل
+                    </h3>
+                    <p className="text-sm text-muted">
+                        شوف رسائل العملاء من صفحة "تواصل معنا"
+                    </p>
+                </Link>
+
+                <Link
+                    href="/products"
+                    className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up opacity-0"
+                    style={{ animationDelay: "640ms", animationFillMode: "forwards" }}
                 >
                     <h3 className="text-lg font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors">
                         عرض المتجر

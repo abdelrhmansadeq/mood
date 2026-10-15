@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { FormEvent } from "react";
+import type { ChangeEvent, FormEvent } from "react";
+import { submitContactMessage } from "@/lib/contact-api";
 
 export default function ContactPage() {
     const [formData, setFormData] = useState({
@@ -10,18 +11,37 @@ export default function ContactPage() {
         message: "",
     });
     const [sent, setSent] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState("");
 
     const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+        e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
     ) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+        if (error) setError("");
     };
 
-    const handleSubmit = (e: FormEvent) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setError("");
+        setIsSubmitting(true);
+
+        const result = await submitContactMessage({
+            name: formData.name,
+            email: formData.email,
+            message: formData.message,
+        });
+
+        if (result.error) {
+            setError(result.error);
+            setIsSubmitting(false);
+            return;
+        }
+
         setSent(true);
         setFormData({ name: "", email: "", message: "" });
-        setTimeout(() => setSent(false), 4000);
+        setIsSubmitting(false);
+        setTimeout(() => setSent(false), 5000);
     };
 
     const contactInfo = [
@@ -56,7 +76,7 @@ export default function ContactPage() {
                     >
                         <div>
                             <label className="block text-sm font-medium text-charcoal mb-2">
-                                الاسم
+                                الاسم *
                             </label>
                             <input
                                 type="text"
@@ -71,7 +91,7 @@ export default function ContactPage() {
 
                         <div>
                             <label className="block text-sm font-medium text-charcoal mb-2">
-                                الإيميل
+                                الإيميل *
                             </label>
                             <input
                                 type="email"
@@ -86,7 +106,7 @@ export default function ContactPage() {
 
                         <div>
                             <label className="block text-sm font-medium text-charcoal mb-2">
-                                رسالتك
+                                رسالتك *
                             </label>
                             <textarea
                                 name="message"
@@ -95,7 +115,7 @@ export default function ContactPage() {
                                 value={formData.message}
                                 onChange={handleChange}
                                 className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold transition-colors resize-none"
-                                placeholder="اكتب رسالتك هنا..."
+                                placeholder="اكتب رسالتك هنا... (10 أحرف على الأقل)"
                             />
                         </div>
 
@@ -105,11 +125,18 @@ export default function ContactPage() {
                             </div>
                         )}
 
+                        {error && (
+                            <div className="bg-error/10 text-error border border-error/30 rounded-md p-3 text-sm animate-fade-down">
+                                {error}
+                            </div>
+                        )}
+
                         <button
                             type="submit"
-                            className="w-full bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors"
+                            disabled={isSubmitting}
+                            className="w-full bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors disabled:opacity-50"
                         >
-                            إرسال الرسالة
+                            {isSubmitting ? "جاري الإرسال..." : "إرسال الرسالة"}
                         </button>
                     </form>
                 </div>
