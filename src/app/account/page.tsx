@@ -28,7 +28,7 @@ export default function AccountPage() {
 
     return (
         <div className="max-w-4xl mx-auto px-6 lg:px-8 py-12">
-            <div className="mb-10">
+            <div className="mb-10 animate-fade-up">
                 <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2">
                     My Account
                 </p>
@@ -38,7 +38,10 @@ export default function AccountPage() {
             </div>
 
             {/* Profile Card */}
-            <div className="bg-white rounded-lg border border-charcoal/10 p-6 mb-6">
+            <div
+                className="bg-white rounded-lg border border-charcoal/10 p-6 mb-6 animate-fade-up opacity-0"
+                style={{ animationDelay: "100ms", animationFillMode: "forwards" }}
+            >
                 <h2 className="text-lg font-semibold text-charcoal mb-5">
                     بياناتي
                 </h2>
@@ -68,7 +71,8 @@ export default function AccountPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <Link
                     href="/account/orders"
-                    className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-colors"
+                    className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up opacity-0"
+                    style={{ animationDelay: "200ms", animationFillMode: "forwards" }}
                 >
                     <h3 className="text-base font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors">
                         طلباتي
@@ -78,7 +82,8 @@ export default function AccountPage() {
 
                 <Link
                     href="/wishlist"
-                    className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-colors"
+                    className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up opacity-0"
+                    style={{ animationDelay: "300ms", animationFillMode: "forwards" }}
                 >
                     <h3 className="text-base font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors">
                         المفضلة
@@ -93,7 +98,8 @@ export default function AccountPage() {
                     await signOut();
                     router.push("/");
                 }}
-                className="w-full md:w-auto px-6 py-3 border border-error/30 text-error hover:bg-error/10 font-medium rounded-md transition-colors"
+                className="w-full md:w-auto px-6 py-3 border border-error/30 text-error hover:bg-error/10 font-medium rounded-md transition-colors animate-fade-up opacity-0"
+                style={{ animationDelay: "400ms", animationFillMode: "forwards" }}
             >
                 تسجيل خروج
             </button>

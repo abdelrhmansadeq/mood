@@ -35,7 +35,6 @@ export default function CheckoutPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
 
-    // Pre-fill from user data
     useEffect(() => {
         if (user) {
             // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -47,7 +46,6 @@ export default function CheckoutPage() {
         }
     }, [user]);
 
-    // Redirect to login if not logged in
     useEffect(() => {
         if (!authLoading && !user) {
             router.push("/login");
@@ -127,23 +125,23 @@ export default function CheckoutPage() {
     // Success Screen
     if (submitted) {
         return (
-            <div className="max-w-2xl mx-auto px-6 py-20 text-center">
-                <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-6">
+            <div className="max-w-2xl mx-auto px-6 py-20 text-center animate-fade-in">
+                <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-6 animate-fade-up">
                     <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="20 6 9 17 4 12" />
                     </svg>
                 </div>
-                <h1 className="text-3xl font-bold text-charcoal mb-3">
+                <h1 className="text-3xl font-bold text-charcoal mb-3 animate-fade-up">
                     تم استلام طلبك!
                 </h1>
-                <p className="text-muted mb-6">
+                <p className="text-muted mb-6 animate-fade-up">
                     شكراً لك. هنتواصل معاك قريباً لتأكيد الطلب.
                 </p>
-                <div className="bg-white border border-charcoal/10 rounded-lg p-6 mb-8 inline-block">
+                <div className="bg-white border border-charcoal/10 rounded-lg p-6 mb-8 inline-block animate-fade-up">
                     <p className="text-xs text-muted mb-1">رقم الطلب</p>
                     <p className="text-2xl font-bold text-gold">{orderNumber}</p>
                 </div>
-                <div className="flex justify-center gap-4 flex-wrap">
+                <div className="flex justify-center gap-4 flex-wrap animate-fade-up">
                     <Link
                         href="/account/orders"
                         className="inline-block bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold px-6 py-3 rounded-md transition-colors"
@@ -164,7 +162,7 @@ export default function CheckoutPage() {
     // Empty Cart
     if (items.length === 0) {
         return (
-            <div className="max-w-2xl mx-auto px-6 py-20 text-center">
+            <div className="max-w-2xl mx-auto px-6 py-20 text-center animate-fade-in">
                 <h1 className="text-2xl font-bold text-charcoal mb-3">
                     السلة فاضية
                 </h1>
@@ -182,8 +180,8 @@ export default function CheckoutPage() {
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
-            <div className="mb-10">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12 animate-fade-in">
+            <div className="mb-10 animate-fade-up">
                 <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2">
                     Checkout
                 </p>
@@ -274,7 +272,7 @@ export default function CheckoutPage() {
                     </div>
 
                     <div className="lg:col-span-1">
-                        <div className="bg-white rounded-lg border border-charcoal/10 p-6 sticky top-24">
+                        <div className="bg-white rounded-lg border border-charcoal/10 p-6 sticky top-24 animate-fade-up">
                             <h2 className="text-lg font-semibold text-charcoal mb-5">
                                 ملخص الطلب
                             </h2>

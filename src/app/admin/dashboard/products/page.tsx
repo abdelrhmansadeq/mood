@@ -56,9 +56,8 @@ function calcTotal(sizes: ProductSizes, colors: ProductColorVariant[]): number {
 export default function AdminProductsPage() {
     const router = useRouter();
     const { isLoggedIn } = useAdmin();
-    const { products, addProduct, updateProduct, deleteProduct, resetProducts } =
-        useProducts();
     const { showToast } = useToast();
+    const { products, addProduct, updateProduct, deleteProduct } = useProducts();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
@@ -117,7 +116,6 @@ export default function AdminProductsPage() {
         });
     };
 
-    // ==== Colors ====
     const addColor = () => {
         setFormData({
             ...formData,
@@ -169,7 +167,6 @@ export default function AdminProductsPage() {
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
 
-        // فلترة الألوان الناقصة
         const incompleteColors: string[] = [];
         formData.colors.forEach((c, i) => {
             if (!c.name.trim() || !c.image.trim()) {
@@ -226,23 +223,12 @@ export default function AdminProductsPage() {
                         إدارة المنتجات
                     </h1>
                 </div>
-                <div className="flex gap-3">
-                    <button
-                        onClick={async () => {
-                            await resetProducts();
-                            showToast("تم استرجاع المنتجات الافتراضية", "success");
-                        }}
-                        className="text-sm text-muted hover:text-charcoal border border-charcoal/15 hover:border-charcoal/30 px-4 py-2 rounded-md transition-colors"
-                    >
-                        استرجاع الافتراضي
-                    </button>
-                    <button
-                        onClick={openAdd}
-                        className="bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-medium px-5 py-2.5 rounded-md transition-colors text-sm"
-                    >
-                        + إضافة منتج
-                    </button>
-                </div>
+                <button
+                    onClick={openAdd}
+                    className="bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-medium px-5 py-2.5 rounded-md transition-colors text-sm"
+                >
+                    + إضافة منتج
+                </button>
             </div>
 
             {/* Products Table */}
@@ -502,7 +488,7 @@ export default function AdminProductsPage() {
                                     />
                                 </div>
 
-                                {/* ==== Colors Section ==== */}
+                                {/* Colors Section */}
                                 <div className="border-t border-charcoal/10 pt-5">
                                     <div className="flex items-center justify-between mb-3">
                                         <div>
@@ -536,7 +522,6 @@ export default function AdminProductsPage() {
                                                         key={idx}
                                                         className="bg-white rounded-md border border-charcoal/10 p-4"
                                                     >
-                                                        {/* Color Info */}
                                                         <div className="grid grid-cols-12 gap-3 items-start mb-4">
                                                             <div className="col-span-12 md:col-span-1 flex items-center justify-center">
                                 <span
@@ -613,7 +598,6 @@ export default function AdminProductsPage() {
                                                             </div>
                                                         </div>
 
-                                                        {/* Color Sizes */}
                                                         <div>
                                                             <div className="flex items-center justify-between mb-2">
                                                                 <label className="text-xs font-medium text-charcoal">
@@ -652,7 +636,6 @@ export default function AdminProductsPage() {
                                         </div>
                                     )}
 
-                                    {/* لو مفيش ألوان، نظهر sizes العادي */}
                                     {!hasColors && (
                                         <div className="bg-white rounded-md border border-charcoal/10 p-4">
                                             <div className="flex items-center justify-between mb-2">

@@ -97,7 +97,7 @@ export default function OrderDetailPage({ params }: Props) {
 
     if (notFound || !displayOrder) {
         return (
-            <div className="max-w-2xl mx-auto px-6 py-20 text-center">
+            <div className="max-w-2xl mx-auto px-6 py-20 text-center animate-fade-in">
                 <h1 className="text-2xl font-bold text-charcoal mb-3">
                     الطلب غير موجود
                 </h1>
@@ -118,7 +118,7 @@ export default function OrderDetailPage({ params }: Props) {
         displayOrder.status === "pending" || displayOrder.status === "confirmed";
 
     return (
-        <div className="max-w-4xl mx-auto px-6 lg:px-8 py-12">
+        <div className="max-w-4xl mx-auto px-6 lg:px-8 py-12 animate-fade-in">
             <div className="mb-8">
                 <Link
                     href="/account/orders"
@@ -129,7 +129,7 @@ export default function OrderDetailPage({ params }: Props) {
             </div>
 
             {/* Header */}
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-8 pb-6 border-b border-charcoal/10">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-8 pb-6 border-b border-charcoal/10 animate-fade-up">
                 <div>
                     <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2">
                         Order Details
@@ -166,7 +166,10 @@ export default function OrderDetailPage({ params }: Props) {
             </div>
 
             {/* Shipping Info */}
-            <div className="bg-white rounded-lg border border-charcoal/10 p-6 mb-6">
+            <div
+                className="bg-white rounded-lg border border-charcoal/10 p-6 mb-6 animate-fade-up opacity-0"
+                style={{ animationDelay: "100ms", animationFillMode: "forwards" }}
+            >
                 <h2 className="text-lg font-semibold text-charcoal mb-4">
                     بيانات الشحن
                 </h2>
@@ -199,7 +202,10 @@ export default function OrderDetailPage({ params }: Props) {
             </div>
 
             {/* Items */}
-            <div className="bg-white rounded-lg border border-charcoal/10 p-6 mb-6">
+            <div
+                className="bg-white rounded-lg border border-charcoal/10 p-6 mb-6 animate-fade-up opacity-0"
+                style={{ animationDelay: "200ms", animationFillMode: "forwards" }}
+            >
                 <h2 className="text-lg font-semibold text-charcoal mb-4">
                     المنتجات ({displayOrder.items.length})
                 </h2>
@@ -239,7 +245,10 @@ export default function OrderDetailPage({ params }: Props) {
             </div>
 
             {/* Total */}
-            <div className="bg-white rounded-lg border border-charcoal/10 p-6">
+            <div
+                className="bg-white rounded-lg border border-charcoal/10 p-6 animate-fade-up opacity-0"
+                style={{ animationDelay: "300ms", animationFillMode: "forwards" }}
+            >
                 <h2 className="text-lg font-semibold text-charcoal mb-4">
                     ملخص الحساب
                 </h2>
