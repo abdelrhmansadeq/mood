@@ -76,9 +76,10 @@ export default function OrdersPage() {
                     {orders.map((order) => {
                         const status = STATUS_LABELS[order.status] || STATUS_LABELS.pending;
                         return (
-                            <div
+                            <Link
                                 key={order.id}
-                                className="bg-white rounded-lg border border-charcoal/10 p-5"
+                                href={`/account/orders/${order.id}`}
+                                className="block bg-white rounded-lg border border-charcoal/10 hover:border-gold p-5 transition-colors"
                             >
                                 {/* Header */}
                                 <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 border-b border-charcoal/10">
@@ -131,7 +132,12 @@ export default function OrdersPage() {
                                         الإجمالي: {order.total} ج.م
                                     </div>
                                 </div>
-                            </div>
+
+                                {/* View Details */}
+                                <div className="text-xs text-gold font-medium mt-3 pt-3 border-t border-charcoal/10">
+                                    عرض التفاصيل →
+                                </div>
+                            </Link>
                         );
                     })}
                 </div>
