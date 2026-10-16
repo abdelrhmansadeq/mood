@@ -8,6 +8,7 @@ import { useCart } from "@/components/cart-context";
 import { useAuth } from "@/components/auth-context";
 import { useProducts } from "@/components/products-context";
 import { createOrder } from "@/lib/orders-api";
+import { fetchUserAddress } from "@/lib/addresses-api";
 
 type FormData = {
     fullName: string;
@@ -35,17 +36,47 @@ export default function CheckoutPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
 
+    // Pre-fill from user data + saved address
     useEffect(() => {
-        if (user) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setFormData((prev) => ({
-                ...prev,
+        if (!user) return;
+
+        let isMounted = true;
+
+        const loadData = async () => {
+            // الأول: بيانات الحساب
+            const baseData = {
                 fullName: user.user_metadata?.full_name || "",
                 phone: user.user_metadata?.phone || "",
-            }));
-        }
+            };
+
+            // بعدين: العنوان المحفوظ (لو موجود)
+            const savedAddress = await fetchUserAddress(user.id);
+            if (!isMounted) return;
+
+            if (savedAddress) {
+                setFormData((prev) => ({
+                    ...prev,
+                    fullName: savedAddress.fullName || baseData.fullName,
+                    phone: savedAddress.phone || baseData.phone,
+                    city: savedAddress.city,
+                    address: savedAddress.address,
+                }));
+            } else {
+                setFormData((prev) => ({
+                    ...prev,
+                    ...baseData,
+                }));
+            }
+        };
+
+        void loadData();
+
+        return () => {
+            isMounted = false;
+        };
     }, [user]);
 
+    // Redirect to login if not logged in
     useEffect(() => {
         if (!authLoading && !user) {
             router.push("/login");
@@ -193,9 +224,17 @@ export default function CheckoutPage() {
             <form onSubmit={handleSubmit}>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                     <div className="lg:col-span-2 space-y-5">
-                        <h2 className="text-lg font-semibold text-charcoal mb-4">
-                            بيانات الشحن
-                        </h2>
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-lg font-semibold text-charcoal">
+                                بيانات الشحن
+                            </h2>
+                            <Link
+                                href="/account"
+                                className="text-sm text-gold hover:underline font-medium"
+                            >
+                                تعديل العنوان المحفوظ
+                            </Link>
+                        </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div>
