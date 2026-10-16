@@ -43,10 +43,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             const stored = localStorage.getItem(STORAGE_KEY);
             if (stored) {
                 const parsed = JSON.parse(stored);
-                if (Array.isArray(parsed)) {
-                    // eslint-disable-next-line react-hooks/set-state-in-effect
-                    setItems(parsed);
-                }
+                if (Array.isArray(parsed)) setItems(parsed);
             }
         } catch (e) {
             console.error("Failed to load cart", e);
@@ -64,10 +61,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
     }, [items, mounted]);
 
-    // Clean stale items (products that no longer exist)
     // Sync cart with products:
-// - نشيل المنتجات المحذوفة
-// - نحدّث السعر والاسم لو اتغيروا
+    // - نشيل المنتجات المحذوفة
+    // - نحدّث السعر والاسم لو اتغيروا (بس بالسعر الفعلي — sale price لو موجود)
     useEffect(() => {
         if (!mounted || products.length === 0) return;
 
@@ -79,16 +75,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
             .map((item) => {
                 const product = productMap.get(item.productId)!;
 
-                // لو السعر أو الاسم اتغير، نحدّثهم
+                // ✅ السعر الفعلي: salePrice لو موجود وأقل، وإلا السعر الأصلي
+                const effectivePrice =
+                    product.salePrice != null && product.salePrice < product.price
+                        ? product.salePrice
+                        : product.price;
+
                 if (
-                    item.price !== product.price ||
+                    item.price !== effectivePrice ||
                     item.name !== product.name ||
                     item.nameEn !== product.nameEn
                 ) {
                     hasChanges = true;
                     return {
                         ...item,
-                        price: product.price,
+                        price: effectivePrice,
                         name: product.name,
                         nameEn: product.nameEn,
                     };

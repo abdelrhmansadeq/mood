@@ -29,6 +29,14 @@ export default function ProductDetail({ product, related }: Props) {
     const { toggleItem, isInWishlist } = useWishlist();
     const isFavorite = isInWishlist(product.id);
 
+    // سعر البيع الفعلي
+    const hasSale =
+        product.salePrice != null && product.salePrice < product.price;
+    const finalPrice = hasSale ? product.salePrice! : product.price;
+    const discountPercent = hasSale
+        ? Math.round(((product.price - product.salePrice!) / product.price) * 100)
+        : 0;
+
     const currentSizes: ProductSizes = hasColors
         ? product.colors[selectedColorIndex]?.sizes || defaultSizes
         : product.sizes || defaultSizes;
@@ -76,7 +84,7 @@ export default function ProductDetail({ product, related }: Props) {
             productId: product.id,
             name: product.name,
             nameEn: product.nameEn,
-            price: product.price,
+            price: finalPrice,
             image: currentImage,
             size: selectedSize,
             color: currentColorName || "افتراضي",
@@ -127,6 +135,11 @@ export default function ProductDetail({ product, related }: Props) {
                             isOutOfStock ? "opacity-50" : ""
                         }`}
                     />
+                    {hasSale && !isOutOfStock && (
+                        <div className="absolute top-4 left-4 bg-error text-white text-sm font-bold px-3 py-1.5 rounded-full">
+                            خصم {discountPercent}%
+                        </div>
+                    )}
                     {isOutOfStock && (
                         <div className="absolute top-4 right-4 bg-charcoal/90 text-cream text-sm font-medium px-4 py-2 rounded-full">
                             نفد المخزون
@@ -145,7 +158,7 @@ export default function ProductDetail({ product, related }: Props) {
                                 : "أطفال"}
                     </p>
 
-                    {/* Title */}
+                    {/* Title + Wishlist */}
                     <div className="flex items-start justify-between gap-3 mb-2">
                         <h1 className="text-2xl md:text-4xl font-bold text-charcoal">
                             {product.name}
@@ -185,9 +198,28 @@ export default function ProductDetail({ product, related }: Props) {
                     </p>
 
                     {/* Price */}
-                    <p className="text-2xl md:text-3xl font-bold text-charcoal mb-3 md:mb-4">
-                        {product.price} <span className="text-lg">ج.م</span>
-                    </p>
+                    {hasSale ? (
+                        <div className="flex items-center gap-3 flex-wrap mb-3 md:mb-4">
+                            <p className="text-2xl md:text-3xl font-bold text-error">
+                                {finalPrice} <span className="text-lg">ج.م</span>
+                            </p>
+                            <p className="text-base md:text-lg text-muted line-through">
+                                {product.price} ج.م
+                            </p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span className="bg-error text-white text-xs font-bold px-2.5 py-1 rounded-full">
+    خصم {discountPercent}%
+  </span>
+                                <span className="bg-error/10 text-error text-xs font-bold px-2 py-1 rounded-full">
+    وفّر {product.price - finalPrice} ج.م
+  </span>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-2xl md:text-3xl font-bold text-charcoal mb-3 md:mb-4">
+                            {product.price} <span className="text-lg">ج.م</span>
+                        </p>
+                    )}
 
                     {/* Stock Status */}
                     {isOutOfStock ? (
@@ -378,7 +410,8 @@ export default function ProductDetail({ product, related }: Props) {
                                             {p.nameEn}
                                         </p>
                                         <p className="text-sm md:text-base font-semibold text-charcoal">
-                                            {p.price} <span className="text-xs">ج.م</span>
+                                            {p.salePrice ?? p.price}{" "}
+                                            <span className="text-xs">ج.م</span>
                                         </p>
                                     </div>
                                 </Link>
@@ -391,13 +424,12 @@ export default function ProductDetail({ product, related }: Props) {
             {/* Reviews */}
             <ProductReviews productId={product.id} />
 
-            {/* ==== MOBILE STICKY BAR ==== */}
+            {/* MOBILE STICKY BAR */}
             <div
                 className="md:hidden fixed bottom-16 inset-x-0 z-30 bg-cream/95 backdrop-blur-md border-t border-charcoal/10 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]"
                 style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
             >
                 <div className="flex items-center gap-2 p-3">
-                    {/* Quantity */}
                     <div className="flex items-center border border-charcoal/20 rounded-md bg-white">
                         <button
                             onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -418,7 +450,6 @@ export default function ProductDetail({ product, related }: Props) {
                         </button>
                     </div>
 
-                    {/* Add to Cart */}
                     <button
                         onClick={handleAddToCart}
                         disabled={!canAddToCart}
@@ -432,7 +463,7 @@ export default function ProductDetail({ product, related }: Props) {
                       : "أضف للسلة"}
             </span>
                         <span className="text-gold font-bold">
-              {product.price * quantity} ج.م
+              {finalPrice * quantity} ج.م
             </span>
                     </button>
                 </div>

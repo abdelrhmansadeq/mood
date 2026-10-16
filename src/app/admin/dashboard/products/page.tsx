@@ -17,6 +17,7 @@ type FormData = {
     name: string;
     nameEn: string;
     price: number;
+    salePrice: number | null;
     image: string;
     category: "men" | "women" | "kids";
     description: string;
@@ -31,6 +32,7 @@ const emptyForm: FormData = {
     name: "",
     nameEn: "",
     price: 0,
+    salePrice: null,
     image: "",
     category: "men",
     description: "",
@@ -85,6 +87,7 @@ export default function AdminProductsPage() {
             name: product.name,
             nameEn: product.nameEn,
             price: product.price,
+            salePrice: product.salePrice ?? null,
             image: product.image,
             category: product.category,
             description: product.description,
@@ -104,6 +107,9 @@ export default function AdminProductsPage() {
             setFormData({ ...formData, [name]: checked });
         } else if (name === "price") {
             setFormData({ ...formData, price: Number(value) });
+        } else if (name === "salePrice") {
+            const num = value === "" ? null : Number(value);
+            setFormData({ ...formData, salePrice: num });
         } else {
             setFormData({ ...formData, [name]: value });
         }
@@ -166,6 +172,15 @@ export default function AdminProductsPage() {
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
+
+        // Validate sale price
+        if (
+            formData.salePrice !== null &&
+            formData.salePrice >= formData.price
+        ) {
+            showToast("سعر الخصم لازم يكون أقل من السعر الأصلي", "error");
+            return;
+        }
 
         const incompleteColors: string[] = [];
         formData.colors.forEach((c, i) => {
@@ -251,6 +266,8 @@ export default function AdminProductsPage() {
                             const sizes = p.sizes || emptySizes;
                             const colors = p.colors || [];
                             const total = calcTotal(sizes, colors);
+                            const hasSale =
+                                p.salePrice != null && p.salePrice < p.price;
                             return (
                                 <tr
                                     key={p.id}
@@ -277,8 +294,19 @@ export default function AdminProductsPage() {
                                                     : "أطفال"}
                                         </p>
                                     </td>
-                                    <td className="px-4 py-3 text-charcoal whitespace-nowrap">
-                                        {p.price} ج.م
+                                    <td className="px-4 py-3 whitespace-nowrap">
+                                        {hasSale ? (
+                                            <div>
+                                                <p className="text-error font-bold">
+                                                    {p.salePrice} ج.م
+                                                </p>
+                                                <p className="text-xs text-muted line-through">
+                                                    {p.price} ج.م
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <span className="text-charcoal">{p.price} ج.م</span>
+                                        )}
                                     </td>
                                     <td className="px-4 py-3">
                                         {colors.length > 0 ? (
@@ -379,12 +407,13 @@ export default function AdminProductsPage() {
                         const sizes = p.sizes || emptySizes;
                         const colors = p.colors || [];
                         const total = calcTotal(sizes, colors);
+                        const hasSale =
+                            p.salePrice != null && p.salePrice < p.price;
                         return (
                             <div
                                 key={p.id}
                                 className="bg-white rounded-lg border border-charcoal/10 p-4"
                             >
-                                {/* Top: Image + Info */}
                                 <div className="flex gap-3 mb-3">
                                     <div className="w-16 h-20 rounded-md overflow-hidden bg-cream flex-shrink-0">
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -413,10 +442,21 @@ export default function AdminProductsPage() {
                                                     ? "نسائي"
                                                     : "أطفال"}
                                         </p>
-                                        <div className="flex items-center gap-2 mt-2">
-                      <span className="text-sm font-bold text-charcoal">
-                        {p.price} ج.م
-                      </span>
+                                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                            {hasSale ? (
+                                                <>
+                          <span className="text-sm font-bold text-error">
+                            {p.salePrice} ج.م
+                          </span>
+                                                    <span className="text-xs text-muted line-through">
+                            {p.price} ج.م
+                          </span>
+                                                </>
+                                            ) : (
+                                                <span className="text-sm font-bold text-charcoal">
+                          {p.price} ج.م
+                        </span>
+                                            )}
                                             <span
                                                 className={`text-xs px-2 py-0.5 rounded-full ${
                                                     total === 0
@@ -432,7 +472,6 @@ export default function AdminProductsPage() {
                                     </div>
                                 </div>
 
-                                {/* Variants */}
                                 {colors.length > 0 ? (
                                     <div className="mb-3 pb-3 border-t border-charcoal/10 pt-3">
                                         <p className="text-xs text-muted mb-2">الألوان:</p>
@@ -484,7 +523,6 @@ export default function AdminProductsPage() {
                                     </div>
                                 )}
 
-                                {/* Actions */}
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => openEdit(p)}
@@ -561,10 +599,10 @@ export default function AdminProductsPage() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                                     <div>
                                         <label className="block text-sm font-medium text-charcoal mb-2">
-                                            السعر (ج.م) *
+                                            السعر الأصلي (ج.م) *
                                         </label>
                                         <input
                                             type="number"
@@ -575,6 +613,27 @@ export default function AdminProductsPage() {
                                             onChange={handleChange}
                                             className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold"
                                         />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-charcoal mb-2">
+                                            سعر الخصم (ج.م)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="salePrice"
+                                            min="0"
+                                            value={formData.salePrice ?? ""}
+                                            onChange={handleChange}
+                                            placeholder="اتركه فاضي لو مفيش خصم"
+                                            className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold"
+                                        />
+                                        {formData.salePrice !== null &&
+                                            formData.salePrice >= formData.price && (
+                                                <p className="text-xs text-error mt-1">
+                                                    سعر الخصم لازم أقل من السعر الأصلي
+                                                </p>
+                                            )}
                                     </div>
 
                                     <div>

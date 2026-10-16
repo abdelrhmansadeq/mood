@@ -20,6 +20,7 @@ export type Product = {
     name: string;
     nameEn: string;
     price: number;
+    salePrice?: number | null;
     image: string;
     category: "men" | "women" | "kids";
     description: string;

@@ -6,6 +6,7 @@ type SupabaseProduct = {
     name: string;
     name_en: string;
     price: number;
+    sale_price: number | null;
     image: string;
     category: "men" | "women" | "kids";
     description: string;
@@ -27,6 +28,7 @@ function toProduct(row: SupabaseProduct): Product {
         name: row.name,
         nameEn: row.name_en,
         price: row.price,
+        salePrice: row.sale_price,
         image: row.image,
         category: row.category,
         description: row.description,
@@ -82,6 +84,7 @@ export async function addProductToDB(
             name: product.name,
             name_en: product.nameEn,
             price: product.price,
+            sale_price: product.salePrice ?? null,
             image: product.image,
             category: product.category,
             description: product.description,
@@ -109,6 +112,8 @@ export async function updateProductInDB(
     if (updates.name !== undefined) dbUpdates.name = updates.name;
     if (updates.nameEn !== undefined) dbUpdates.name_en = updates.nameEn;
     if (updates.price !== undefined) dbUpdates.price = updates.price;
+    if (updates.salePrice !== undefined)
+        dbUpdates.sale_price = updates.salePrice;
     if (updates.image !== undefined) dbUpdates.image = updates.image;
     if (updates.category !== undefined) dbUpdates.category = updates.category;
     if (updates.description !== undefined)

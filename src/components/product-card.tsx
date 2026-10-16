@@ -20,6 +20,14 @@ export default function ProductCard({ product }: Props) {
 
     const isOutOfStock = product.stock === 0;
 
+    // سعر البيع الفعلي
+    const hasSale =
+        product.salePrice != null && product.salePrice < product.price;
+    const finalPrice = hasSale ? product.salePrice! : product.price;
+    const discountPercent = hasSale
+        ? Math.round(((product.price - product.salePrice!) / product.price) * 100)
+        : 0;
+
     return (
         <Link
             href={`/products/${product.id}`}
@@ -61,6 +69,13 @@ export default function ProductCard({ product }: Props) {
                     </svg>
                 </button>
 
+                {/* Sale Badge */}
+                {hasSale && !isOutOfStock && (
+                    <div className="absolute top-3 right-3 bg-error text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                        خصم {discountPercent}%
+                    </div>
+                )}
+
                 {/* Out of Stock Badge */}
                 {isOutOfStock && (
                     <div className="absolute top-3 right-3 bg-charcoal/90 text-cream text-xs font-medium px-3 py-1.5 rounded-full">
@@ -91,9 +106,22 @@ export default function ProductCard({ product }: Props) {
                     </div>
                 )}
 
-                <p className="text-base font-semibold text-charcoal">
-                    {product.price} <span className="text-xs">ج.م</span>
-                </p>
+                {/* Price */}
+                {hasSale ? (
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-base font-bold text-error">
+                            {finalPrice} <span className="text-xs">ج.م</span>
+                        </p>
+                        <p className="text-xs text-muted line-through">
+                            {product.price} ج.م
+                        </p>
+                    </div>
+                ) : (
+                    <p className="text-base font-semibold text-charcoal">
+                        {product.price} <span className="text-xs">ج.م</span>
+                    </p>
+                )}
+
                 {isOutOfStock && (
                     <p className="text-xs text-error font-medium mt-1">
                         غير متوفر حالياً

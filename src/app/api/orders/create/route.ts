@@ -25,6 +25,7 @@ type SupabaseProduct = {
     id: number;
     name: string;
     price: number;
+    sale_price: number | null;
     stock: number;
     sizes: Record<string, number>;
     colors: Array<{
@@ -40,7 +41,6 @@ export async function POST(request: Request) {
         const body: RequestBody = await request.json();
         const { fullName, phone, city, address, notes, items } = body;
 
-        // ✅ نقرا الـ token من الـ Header
         const authHeader = request.headers.get("authorization");
         const token = authHeader?.replace("Bearer ", "");
 
@@ -51,7 +51,6 @@ export async function POST(request: Request) {
             );
         }
 
-        // نتحقق من التوكن باستخدام supabaseAdmin
         const {
             data: { user: authUser },
             error: authError,
@@ -78,7 +77,7 @@ export async function POST(request: Request) {
         const productIds = items.map((i) => i.productId);
         const { data: dbProducts, error: fetchError } = await supabaseAdmin
             .from("products")
-            .select("id, name, price, stock, sizes, colors")
+            .select("id, name, price, sale_price, stock, sizes, colors")
             .in("id", productIds);
 
         if (fetchError || !dbProducts) {
@@ -88,7 +87,7 @@ export async function POST(request: Request) {
             );
         }
 
-        // 2) تحقق من المخزون حسب (اللون + المقاس)
+        // 2) تحقق من المخزون
         for (const item of items) {
             const product = dbProducts.find(
                 (p: SupabaseProduct) => p.id === item.productId
@@ -133,12 +132,16 @@ export async function POST(request: Request) {
             }
         }
 
-        // 3) نحسب الإجماليات من أسعار الداتابيز (مش من العميل)
+        // 3) نحسب الإجماليات بالسعر الفعلي (sale_price لو موجود)
         const enrichedItems = items.map((item) => {
             const product = dbProducts.find(
                 (p: SupabaseProduct) => p.id === item.productId
             )!;
-            return { ...item, price: product.price };
+            const effectivePrice =
+                product.sale_price != null && product.sale_price < product.price
+                    ? product.sale_price
+                    : product.price;
+            return { ...item, price: effectivePrice };
         });
 
         const subtotal = enrichedItems.reduce(
@@ -148,7 +151,7 @@ export async function POST(request: Request) {
         const shipping = subtotal >= 500 ? 0 : 50;
         const total = subtotal + shipping;
 
-        // 4) نخصم المخزون + نتتبع اللي خصمناه للـ rollback
+        // 4) نخصم المخزون + نتتبع
         const deductedItems: Array<{
             productId: number;
             color: string;
@@ -186,7 +189,6 @@ export async function POST(request: Request) {
             }
 
             if (rpcError || !success) {
-                // rollback
                 for (const deducted of deductedItems) {
                     if (deducted.hasColors) {
                         await supabaseAdmin.rpc("increase_product_color_stock", {
@@ -243,7 +245,6 @@ export async function POST(request: Request) {
 
         if (orderError) {
             console.error("Order error:", orderError);
-            // rollback
             for (const deducted of deductedItems) {
                 if (deducted.hasColors) {
                     await supabaseAdmin.rpc("increase_product_color_stock", {
@@ -266,7 +267,7 @@ export async function POST(request: Request) {
             );
         }
 
-// 6) نزود عدّاد المبيعات لكل منتج
+        // 6) نزود عدّاد المبيعات
         for (const item of enrichedItems) {
             await supabaseAdmin.rpc("increment_sold_count", {
                 p_product_id: item.productId,
