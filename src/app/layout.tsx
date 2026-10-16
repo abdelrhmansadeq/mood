@@ -29,9 +29,66 @@ const plexArabic = IBM_Plex_Sans_Arabic({
     display: "swap",
 });
 
+const baseUrl = "https://mood-khaki-beta.vercel.app";
+
 export const metadata: Metadata = {
-    title: "Mood | متجر الأناقة",
-    description: "Mood — متجر ملابس عصري. Elegance begins here.",
+    metadataBase: new URL(baseUrl),
+    title: {
+        default: "Mood | متجر الأناقة",
+        template: "%s | Mood",
+    },
+    description:
+        "Mood — متجر ملابس عصري بأرقى التصاميم. اكتشف تشكيلة مميزة من الملابس الرجالية والنسائية والأطفال. شحن مجاني للطلبات أكثر من 500 ج.م.",
+    keywords: [
+        "متجر ملابس",
+        "ملابس عصرية",
+        "أزياء",
+        "Mood",
+        "متجر أونلاين",
+        "ملابس رجالية",
+        "ملابس نسائية",
+        "ملابس أطفال",
+        "تسوق أونلاين",
+        "مصر",
+    ],
+    authors: [{ name: "Mood" }],
+    creator: "Mood",
+    publisher: "Mood",
+    openGraph: {
+        type: "website",
+        locale: "ar_EG",
+        url: baseUrl,
+        siteName: "Mood",
+        title: "Mood | متجر الأناقة",
+        description:
+            "اكتشف تشكيلة مميزة من الملابس العصرية بتصاميم تناسب ذوقك.",
+        images: [
+            {
+                url: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&h=630&fit=crop",
+                width: 1200,
+                height: 630,
+                alt: "Mood | متجر الأناقة",
+            },
+        ],
+    },
+    twitter: {
+        card: "summary_large_image",
+        title: "Mood | متجر الأناقة",
+        description: "اكتشف تشكيلة مميزة من الملابس العصرية.",
+        images: [
+            "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&h=630&fit=crop",
+        ],
+    },
+    robots: {
+        index: true,
+        follow: true,
+        googleBot: {
+            index: true,
+            follow: true,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+        },
+    },
 };
 
 export default function RootLayout({

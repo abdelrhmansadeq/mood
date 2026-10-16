@@ -1,3 +1,17 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "سياسة الخصوصية",
+    description:
+        "سياسة الخصوصية في متجر Mood — كيف نجمع ونستخدم ونحمي معلوماتك الشخصية.",
+    robots: {
+        index: false,
+        follow: true,
+    },
+};
+
+// باقي الكود...
+
 export default function PrivacyPage() {
     const sections = [
         {

@@ -1,3 +1,17 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "الشروط والأحكام",
+    description:
+        "الشروط والأحكام لاستخدام متجر Mood — الطلبات، الدفع، الشحن، والإرجاع.",
+    robots: {
+        index: false,
+        follow: true,
+    },
+};
+
+// باقي الكود...
+
 export default function TermsPage() {
     const sections = [
         {

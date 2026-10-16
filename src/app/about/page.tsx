@@ -1,4 +1,17 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+    title: "من نحن",
+    description:
+        "تعرف على Mood — متجر ملابس عصري هدفه يقدّم لك أرقى القطع بتصاميم مميزة. قيمنا: جودة، أناقة، وخدمة.",
+    openGraph: {
+        title: "من نحن | Mood",
+        description: "تعرف على Mood — متجر ملابس عصري.",
+    },
+};
+
+
 
 export default function AboutPage() {
     const values = [
