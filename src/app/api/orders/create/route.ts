@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import {
+    sendEmail,
+    buildCustomerOrderEmail,
+    buildAdminOrderEmail,
+} from "@/lib/email";
 
 type OrderItem = {
     productId: number;
@@ -73,7 +78,7 @@ export async function POST(request: Request) {
         const userId = authUser.id;
         const userEmail = authUser.email || "";
 
-        // 1) نجيب المنتجات من الداتابيز
+        // 1) نجيب المنتجات
         const productIds = items.map((i) => i.productId);
         const { data: dbProducts, error: fetchError } = await supabaseAdmin
             .from("products")
@@ -132,7 +137,7 @@ export async function POST(request: Request) {
             }
         }
 
-        // 3) نحسب الإجماليات بالسعر الفعلي (sale_price لو موجود)
+        // 3) نحسب الإجماليات
         const enrichedItems = items.map((item) => {
             const product = dbProducts.find(
                 (p: SupabaseProduct) => p.id === item.productId
@@ -151,7 +156,7 @@ export async function POST(request: Request) {
         const shipping = subtotal >= 500 ? 0 : 50;
         const total = subtotal + shipping;
 
-        // 4) نخصم المخزون + نتتبع
+        // 4) نخصم المخزون
         const deductedItems: Array<{
             productId: number;
             color: string;
@@ -273,6 +278,51 @@ export async function POST(request: Request) {
                 p_product_id: item.productId,
                 p_quantity: item.quantity,
             });
+        }
+
+        // 7) نبعت الإيميلات (مش بنوقف الطلب لو الإيميل فشل)
+        try {
+            const emailData = {
+                orderNumber,
+                customerName: fullName,
+                phone,
+                city,
+                address,
+                subtotal,
+                shipping,
+                total,
+                items: enrichedItems.map((i) => ({
+                    name: i.name,
+                    size: i.size,
+                    color: i.color,
+                    quantity: i.quantity,
+                    price: i.price,
+                })),
+            };
+
+            // إيميل للعميل
+            if (userEmail) {
+                await sendEmail({
+                    to: userEmail,
+                    toName: fullName,
+                    subject: `تأكيد طلبك ${orderNumber} - Mood`,
+                    htmlContent: buildCustomerOrderEmail(emailData),
+                });
+            }
+
+            // إيميل للأدمن
+            const adminEmail = process.env.BREVO_ADMIN_EMAIL;
+            if (adminEmail) {
+                await sendEmail({
+                    to: adminEmail,
+                    toName: "Mood Admin",
+                    subject: `🔔 طلب جديد: ${orderNumber}`,
+                    htmlContent: buildAdminOrderEmail(emailData, userEmail),
+                });
+            }
+        } catch (emailError) {
+            // نسجّل الخطأ بس منوقفش الطلب
+            console.error("Email sending failed:", emailError);
         }
 
         return NextResponse.json({ order });
