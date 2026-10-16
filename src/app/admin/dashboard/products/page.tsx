@@ -19,6 +19,7 @@ type FormData = {
     price: number;
     salePrice: number | null;
     image: string;
+    images: string[];
     category: "men" | "women" | "kids";
     description: string;
     isFeatured: boolean;
@@ -34,6 +35,7 @@ const emptyForm: FormData = {
     price: 0,
     salePrice: null,
     image: "",
+    images: [],
     category: "men",
     description: "",
     isFeatured: false,
@@ -65,6 +67,7 @@ export default function AdminProductsPage() {
     const [editingId, setEditingId] = useState<number | null>(null);
     const [formData, setFormData] = useState<FormData>(emptyForm);
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+    const [newImageUrl, setNewImageUrl] = useState("");
 
     useEffect(() => {
         if (!isLoggedIn) router.push("/admin");
@@ -78,6 +81,7 @@ export default function AdminProductsPage() {
     const openAdd = () => {
         setEditingId(null);
         setFormData(emptyForm);
+        setNewImageUrl("");
         setIsModalOpen(true);
     };
 
@@ -89,12 +93,14 @@ export default function AdminProductsPage() {
             price: product.price,
             salePrice: product.salePrice ?? null,
             image: product.image,
+            images: product.images || [],
             category: product.category,
             description: product.description,
             isFeatured: product.isFeatured || false,
             sizes: product.sizes || { ...emptySizes },
             colors: product.colors || [],
         });
+        setNewImageUrl("");
         setIsModalOpen(true);
     };
 
@@ -122,6 +128,26 @@ export default function AdminProductsPage() {
         });
     };
 
+    // ===== Gallery Images =====
+    const addGalleryImage = () => {
+        const url = newImageUrl.trim();
+        if (!url) return;
+        if (formData.images.includes(url)) {
+            showToast("الصورة دي موجودة بالفعل", "error");
+            return;
+        }
+        setFormData({ ...formData, images: [...formData.images, url] });
+        setNewImageUrl("");
+    };
+
+    const removeGalleryImage = (url: string) => {
+        setFormData({
+            ...formData,
+            images: formData.images.filter((i) => i !== url),
+        });
+    };
+
+    // ===== Colors =====
     const addColor = () => {
         setFormData({
             ...formData,
@@ -173,7 +199,6 @@ export default function AdminProductsPage() {
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
 
-        // Validate sale price
         if (
             formData.salePrice !== null &&
             formData.salePrice >= formData.price
@@ -212,6 +237,7 @@ export default function AdminProductsPage() {
         setIsModalOpen(false);
         setFormData(emptyForm);
         setEditingId(null);
+        setNewImageUrl("");
     };
 
     const handleDelete = (id: number) => {
@@ -667,6 +693,70 @@ export default function AdminProductsPage() {
                                         placeholder="https://..."
                                         className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold"
                                     />
+                                </div>
+
+                                {/* Gallery Images */}
+                                <div className="border-t border-charcoal/10 pt-5">
+                                    <label className="block text-sm font-medium text-charcoal mb-1">
+                                        صور إضافية (Gallery)
+                                    </label>
+                                    <p className="text-xs text-muted mb-3">
+                                        صور إضافية تظهر في صفحة المنتج تحت الصورة الرئيسية
+                                    </p>
+
+                                    {/* Existing gallery */}
+                                    {formData.images.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 mb-3">
+                                            {formData.images.map((img, idx) => (
+                                                <div
+                                                    key={`${img}-${idx}`}
+                                                    className="relative w-16 h-20 rounded-md overflow-hidden border border-charcoal/10 group"
+                                                >
+                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                    <img
+                                                        src={img}
+                                                        alt={`صورة ${idx + 1}`}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeGalleryImage(img)}
+                                                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-error text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        aria-label="حذف الصورة"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                                                            <line x1="18" y1="6" x2="6" y2="18" />
+                                                            <line x1="6" y1="6" x2="18" y2="18" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Add new */}
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="url"
+                                            value={newImageUrl}
+                                            onChange={(e) => setNewImageUrl(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter") {
+                                                    e.preventDefault();
+                                                    addGalleryImage();
+                                                }
+                                            }}
+                                            placeholder="https://... الصق رابط الصورة"
+                                            className="flex-1 min-w-0 px-4 py-2.5 rounded-md border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={addGalleryImage}
+                                            className="bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-medium px-4 py-2.5 rounded-md transition-colors text-sm whitespace-nowrap"
+                                        >
+                                            + إضافة
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div>

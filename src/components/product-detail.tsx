@@ -41,10 +41,6 @@ export default function ProductDetail({ product, related }: Props) {
         ? product.colors[selectedColorIndex]?.sizes || defaultSizes
         : product.sizes || defaultSizes;
 
-    const currentImage = hasColors
-        ? product.colors[selectedColorIndex]?.image || product.image
-        : product.image;
-
     const currentColorName = hasColors
         ? product.colors[selectedColorIndex]?.name
         : null;
@@ -52,6 +48,41 @@ export default function ProductDetail({ product, related }: Props) {
     const currentColorHex = hasColors
         ? product.colors[selectedColorIndex]?.hex
         : null;
+
+    const currentColorImage = hasColors
+        ? product.colors[selectedColorIndex]?.image
+        : null;
+
+    // ✅ قايمة الصور:
+    // - لو في ألوان: صورة اللون + باقي الصور
+    // - لو مفيش: images أو image
+    const galleryImages: string[] = (() => {
+        const baseImages =
+            product.images && product.images.length > 0
+                ? product.images
+                : [product.image];
+
+        if (hasColors && currentColorImage) {
+            // نضمن إن صورة اللون أول واحدة، من غير تكرار
+            const others = baseImages.filter((img) => img !== currentColorImage);
+            return [currentColorImage, ...others];
+        }
+
+        return baseImages;
+    })();
+
+    const [selectedImage, setSelectedImage] = useState<string>(
+        galleryImages[0]
+    );
+
+    // لما اللون يتغير، نرجع نحدد صورة اللون
+    useEffect(() => {
+        if (hasColors && currentColorImage) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setSelectedImage(currentColorImage);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedColorIndex]);
 
     const firstAvailableSize = SIZES.find((s) => (currentSizes[s] || 0) > 0);
 
@@ -85,7 +116,7 @@ export default function ProductDetail({ product, related }: Props) {
             name: product.name,
             nameEn: product.nameEn,
             price: finalPrice,
-            image: currentImage,
+            image: selectedImage,
             size: selectedSize,
             color: currentColorName || "افتراضي",
             quantity,
@@ -108,6 +139,8 @@ export default function ProductDetail({ product, related }: Props) {
         ? Object.values(currentSizes).reduce((a, b) => a + b, 0)
         : totalCurrentStock;
 
+    const hasGallery = galleryImages.length > 1;
+
     return (
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8 md:py-12 pb-32 md:pb-12">
             {/* Breadcrumbs */}
@@ -121,28 +154,56 @@ export default function ProductDetail({ product, related }: Props) {
 
             {/* Main Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 mb-20">
-                {/* Image */}
-                <div
-                    className="relative w-full rounded-lg overflow-hidden bg-cream animate-fade-in"
-                    style={{ aspectRatio: "3 / 4" }}
-                >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                        key={currentImage}
-                        src={currentImage}
-                        alt={product.name}
-                        className={`absolute inset-0 w-full h-full object-cover animate-fade-in ${
-                            isOutOfStock ? "opacity-50" : ""
-                        }`}
-                    />
-                    {hasSale && !isOutOfStock && (
-                        <div className="absolute top-4 left-4 bg-error text-white text-sm font-bold px-3 py-1.5 rounded-full">
-                            خصم {discountPercent}%
-                        </div>
-                    )}
-                    {isOutOfStock && (
-                        <div className="absolute top-4 right-4 bg-charcoal/90 text-cream text-sm font-medium px-4 py-2 rounded-full">
-                            نفد المخزون
+                {/* Image + Gallery */}
+                <div className="animate-fade-in">
+                    {/* Main Image */}
+                    <div
+                        className="relative w-full rounded-lg overflow-hidden bg-cream"
+                        style={{ aspectRatio: "3 / 4" }}
+                    >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            key={selectedImage}
+                            src={selectedImage}
+                            alt={product.name}
+                            className={`absolute inset-0 w-full h-full object-cover animate-fade-in ${
+                                isOutOfStock ? "opacity-50" : ""
+                            }`}
+                        />
+                        {hasSale && !isOutOfStock && (
+                            <div className="absolute top-4 left-4 bg-error text-white text-sm font-bold px-3 py-1.5 rounded-full">
+                                خصم {discountPercent}%
+                            </div>
+                        )}
+                        {isOutOfStock && (
+                            <div className="absolute top-4 right-4 bg-charcoal/90 text-cream text-sm font-medium px-4 py-2 rounded-full">
+                                نفد المخزون
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Thumbnails */}
+                    {hasGallery && (
+                        <div className="mt-3 flex gap-2 overflow-x-auto pb-2">
+                            {galleryImages.map((img, idx) => (
+                                <button
+                                    key={`${img}-${idx}`}
+                                    onClick={() => setSelectedImage(img)}
+                                    aria-label={`صورة ${idx + 1}`}
+                                    className={`relative w-16 h-20 md:w-20 md:h-24 rounded-md overflow-hidden flex-shrink-0 border-2 transition-all ${
+                                        selectedImage === img
+                                            ? "border-gold"
+                                            : "border-charcoal/10 hover:border-charcoal/40"
+                                    }`}
+                                >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        src={img}
+                                        alt={`${product.name} - صورة ${idx + 1}`}
+                                        className="absolute inset-0 w-full h-full object-cover"
+                                    />
+                                </button>
+                            ))}
                         </div>
                     )}
                 </div>
@@ -207,12 +268,12 @@ export default function ProductDetail({ product, related }: Props) {
                                 {product.price} ج.م
                             </p>
                             <div className="flex items-center gap-2 flex-wrap">
-                                <span className="bg-error text-white text-xs font-bold px-2.5 py-1 rounded-full">
-    خصم {discountPercent}%
-  </span>
+                <span className="bg-error text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                  خصم {discountPercent}%
+                </span>
                                 <span className="bg-error/10 text-error text-xs font-bold px-2 py-1 rounded-full">
-    وفّر {product.price - finalPrice} ج.م
-  </span>
+                  وفّر {product.price - finalPrice} ج.م
+                </span>
                             </div>
                         </div>
                     ) : (

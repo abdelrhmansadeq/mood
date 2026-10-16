@@ -22,6 +22,7 @@ export type Product = {
     price: number;
     salePrice?: number | null;
     image: string;
+    images?: string[];
     category: "men" | "women" | "kids";
     description: string;
     isFeatured?: boolean;
