@@ -15,6 +15,13 @@ export type ProductColorVariant = {
     sizes: ProductSizes;
 };
 
+export type ProductCategory =
+    | "men"
+    | "women"
+    | "kids"
+    | "shoes"
+    | "accessories";
+
 export type Product = {
     id: number;
     name: string;
@@ -23,7 +30,7 @@ export type Product = {
     salePrice?: number | null;
     image: string;
     images?: string[];
-    category: "men" | "women" | "kids";
+    category: ProductCategory;
     description: string;
     isFeatured?: boolean;
     stock: number;
@@ -33,3 +40,25 @@ export type Product = {
     reviewsCount?: number;
     soldCount?: number;
 };
+
+// ✅ قايمة الفئات بالعربي
+export const CATEGORY_LABELS: Record<ProductCategory, string> = {
+    men: "رجالي",
+    women: "نسائي",
+    kids: "أطفال",
+    shoes: "أحذية",
+    accessories: "إكسسوارات",
+};
+
+// ✅ كل الفئات للفلتر والأدمن
+export const ALL_CATEGORIES: ProductCategory[] = [
+    "men",
+    "women",
+    "kids",
+    "shoes",
+    "accessories",
+];
+
+export function getCategoryLabel(category: string): string {
+    return CATEGORY_LABELS[category as ProductCategory] || category;
+}

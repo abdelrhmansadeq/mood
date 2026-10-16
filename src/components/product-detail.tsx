@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { Product, ProductSizes } from "@/data/products";
+import { getCategoryLabel } from "@/data/products";
 import { useCart } from "./cart-context";
 import { useToast } from "./toast-context";
 import { useWishlist } from "./wishlist-context";
 import ProductReviews from "./product-reviews";
+
 
 type Props = {
     product: Product;
@@ -212,11 +214,7 @@ export default function ProductDetail({ product, related }: Props) {
                 <div className="flex flex-col animate-fade-up">
                     {/* Category */}
                     <p className="text-gold text-xs font-medium tracking-widest uppercase mb-3">
-                        {product.category === "men"
-                            ? "رجالي"
-                            : product.category === "women"
-                                ? "نسائي"
-                                : "أطفال"}
+                        {getCategoryLabel(product.category)}
                     </p>
 
                     {/* Title + Wishlist */}

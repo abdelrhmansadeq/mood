@@ -4,14 +4,16 @@ import { useState, useMemo } from "react";
 import ProductCard from "@/components/product-card";
 import { useProducts } from "@/components/products-context";
 import { ProductGridSkeleton } from "@/components/skeleton";
+import { ALL_CATEGORIES, getCategoryLabel } from "@/data/products";
+import type { ProductCategory } from "@/data/products";
 
-type Category = "all" | "men" | "women" | "kids";
+type CategoryFilter = "all" | ProductCategory;
 type SortOption = "featured" | "price-asc" | "price-desc" | "name-asc";
 type PriceRange = "all" | "under-200" | "200-500" | "500-800" | "above-800";
 
 export default function ProductsPage() {
     const { products, isLoading } = useProducts();
-    const [category, setCategory] = useState<Category>("all");
+    const [category, setCategory] = useState<CategoryFilter>("all");
     const [searchQuery, setSearchQuery] = useState("");
     const [sortBy, setSortBy] = useState<SortOption>("featured");
     const [priceRange, setPriceRange] = useState<PriceRange>("all");
@@ -67,11 +69,12 @@ export default function ProductsPage() {
         return sorted;
     }, [products, category, searchQuery, sortBy, priceRange]);
 
-    const categories: { value: Category; label: string }[] = [
+    const categories: { value: CategoryFilter; label: string }[] = [
         { value: "all", label: "الكل" },
-        { value: "men", label: "رجالي" },
-        { value: "women", label: "نسائي" },
-        { value: "kids", label: "أطفال" },
+        ...ALL_CATEGORIES.map((c) => ({
+            value: c,
+            label: getCategoryLabel(c),
+        })),
     ];
 
     const sortOptions: { value: SortOption; label: string }[] = [

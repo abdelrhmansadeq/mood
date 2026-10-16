@@ -7,10 +7,15 @@ import Link from "next/link";
 import { useAdmin } from "@/components/admin-context";
 import { useProducts } from "@/components/products-context";
 import { useToast } from "@/components/toast-context";
+import {
+    ALL_CATEGORIES,
+    getCategoryLabel,
+} from "@/data/products";
 import type {
     Product,
     ProductSizes,
     ProductColorVariant,
+    ProductCategory,
 } from "@/data/products";
 
 type FormData = {
@@ -20,7 +25,7 @@ type FormData = {
     salePrice: number | null;
     image: string;
     images: string[];
-    category: "men" | "women" | "kids";
+    category: ProductCategory;
     description: string;
     isFeatured: boolean;
     sizes: ProductSizes;
@@ -313,11 +318,7 @@ export default function AdminProductsPage() {
                                         <p className="font-medium text-charcoal">{p.name}</p>
                                         <p className="text-xs text-muted">{p.nameEn}</p>
                                         <p className="text-xs text-muted mt-1">
-                                            {p.category === "men"
-                                                ? "رجالي"
-                                                : p.category === "women"
-                                                    ? "نسائي"
-                                                    : "أطفال"}
+                                            {getCategoryLabel(p.category)}
                                         </p>
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap">
@@ -462,11 +463,7 @@ export default function AdminProductsPage() {
                                             )}
                                         </div>
                                         <p className="text-xs text-muted mt-1">
-                                            {p.category === "men"
-                                                ? "رجالي"
-                                                : p.category === "women"
-                                                    ? "نسائي"
-                                                    : "أطفال"}
+                                            {getCategoryLabel(p.category)}
                                         </p>
                                         <div className="flex items-center gap-2 mt-2 flex-wrap">
                                             {hasSale ? (
@@ -673,9 +670,11 @@ export default function AdminProductsPage() {
                                             onChange={handleChange}
                                             className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold"
                                         >
-                                            <option value="men">رجالي</option>
-                                            <option value="women">نسائي</option>
-                                            <option value="kids">أطفال</option>
+                                            {ALL_CATEGORIES.map((c) => (
+                                                <option key={c} value={c}>
+                                                    {getCategoryLabel(c)}
+                                                </option>
+                                            ))}
                                         </select>
                                     </div>
                                 </div>
@@ -704,7 +703,6 @@ export default function AdminProductsPage() {
                                         صور إضافية تظهر في صفحة المنتج تحت الصورة الرئيسية
                                     </p>
 
-                                    {/* Existing gallery */}
                                     {formData.images.length > 0 && (
                                         <div className="flex flex-wrap gap-2 mb-3">
                                             {formData.images.map((img, idx) => (
@@ -734,7 +732,6 @@ export default function AdminProductsPage() {
                                         </div>
                                     )}
 
-                                    {/* Add new */}
                                     <div className="flex gap-2">
                                         <input
                                             type="url"
