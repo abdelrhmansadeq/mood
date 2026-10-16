@@ -15,6 +15,7 @@ type SupabaseProduct = {
     colors: ProductColorVariant[];
     avg_rating: number | null;
     reviews_count: number | null;
+    sold_count: number | null;
     created_at: string;
 };
 
@@ -35,6 +36,7 @@ function toProduct(row: SupabaseProduct): Product {
         colors: row.colors || [],
         avgRating: row.avg_rating ? Number(row.avg_rating) : 0,
         reviewsCount: row.reviews_count || 0,
+        soldCount: row.sold_count || 0,
     };
 }
 

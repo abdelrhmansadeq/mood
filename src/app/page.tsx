@@ -7,7 +7,17 @@ import { ProductGridSkeleton } from "@/components/skeleton";
 
 export default function Home() {
     const { products, isLoading } = useProducts();
+
     const featured = products.filter((p) => p.isFeatured);
+
+    // Best Sellers: الأعلى مبيعاً
+    const bestSellers = [...products]
+        .filter((p) => (p.soldCount || 0) > 0)
+        .sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0))
+        .slice(0, 4);
+
+    // New Arrivals: أحدث 4 منتجات (بترتيب عكسي)
+    const newArrivals = [...products].reverse().slice(0, 4);
 
     return (
         <div>
@@ -78,15 +88,54 @@ export default function Home() {
                 </div>
             </section>
 
+            {/* Best Sellers */}
+            {!isLoading && bestSellers.length > 0 && (
+                <section className="py-16 md:py-20 border-b border-charcoal/5">
+                    <div className="max-w-7xl mx-auto px-6 lg:px-8">
+                        <div className="flex items-end justify-between mb-8 md:mb-10">
+                            <div className="animate-fade-up">
+                                <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2">
+                                    Best Sellers
+                                </p>
+                                <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-charcoal">
+                                    الأكثر مبيعاً
+                                </h2>
+                            </div>
+                            <Link
+                                href="/products"
+                                className="hidden md:inline-block text-sm font-medium text-charcoal hover:text-gold transition-colors border-b border-charcoal/20 hover:border-gold pb-1"
+                            >
+                                شوف كل المنتجات
+                            </Link>
+                        </div>
+
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                            {bestSellers.map((product, idx) => (
+                                <div
+                                    key={product.id}
+                                    className="animate-fade-up opacity-0"
+                                    style={{
+                                        animationDelay: `${idx * 80}ms`,
+                                        animationFillMode: "forwards",
+                                    }}
+                                >
+                                    <ProductCard product={product} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            )}
+
             {/* Featured Products */}
-            <section className="py-20">
+            <section className="py-16 md:py-20">
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                    <div className="flex items-end justify-between mb-10">
+                    <div className="flex items-end justify-between mb-8 md:mb-10">
                         <div className="animate-fade-up">
                             <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2">
                                 Featured
                             </p>
-                            <h2 className="text-3xl md:text-4xl font-bold text-charcoal">
+                            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-charcoal">
                                 منتجات مميزة
                             </h2>
                         </div>
@@ -120,15 +169,63 @@ export default function Home() {
                             مفيش منتجات مميزة حالياً.
                         </p>
                     )}
+                </div>
+            </section>
 
-                    <div className="md:hidden text-center mt-8">
-                        <Link
-                            href="/products"
-                            className="inline-block text-sm font-medium text-gold border-b border-gold pb-1"
-                        >
-                            شوف كل المنتجات
-                        </Link>
+            {/* New Arrivals */}
+            {!isLoading && newArrivals.length > 0 && (
+                <section className="py-16 md:py-20 bg-white border-t border-charcoal/5">
+                    <div className="max-w-7xl mx-auto px-6 lg:px-8">
+                        <div className="flex items-end justify-between mb-8 md:mb-10">
+                            <div className="animate-fade-up">
+                                <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2">
+                                    New Arrivals
+                                </p>
+                                <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-charcoal">
+                                    وصل حديثاً
+                                </h2>
+                            </div>
+                            <Link
+                                href="/products"
+                                className="hidden md:inline-block text-sm font-medium text-charcoal hover:text-gold transition-colors border-b border-charcoal/20 hover:border-gold pb-1"
+                            >
+                                شوف كل المنتجات
+                            </Link>
+                        </div>
+
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                            {newArrivals.map((product, idx) => (
+                                <div
+                                    key={product.id}
+                                    className="animate-fade-up opacity-0"
+                                    style={{
+                                        animationDelay: `${idx * 80}ms`,
+                                        animationFillMode: "forwards",
+                                    }}
+                                >
+                                    <ProductCard product={product} />
+                                </div>
+                            ))}
+                        </div>
                     </div>
+                </section>
+            )}
+
+            {/* Final CTA */}
+            <section className="py-16 md:py-20 bg-cream">
+                <div className="max-w-3xl mx-auto px-6 text-center">
+                    <h2 className="text-2xl md:text-3xl font-bold text-charcoal mb-4 animate-fade-up">
+                        جاهز تكتشف تشكيلتنا؟
+                    </h2>
+                    <p className="text-muted mb-8 animate-fade-up">
+                        آلاف القطع المميزة بانتظارك
+                    </p>
+                    <Link
+                        href="/products"
+                        className="inline-block bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold px-8 py-3 rounded-md transition-colors animate-fade-up"
+                    >
+                        تسوق الآن
+                    </Link>
                 </div>
             </section>
         </div>

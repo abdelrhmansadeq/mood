@@ -266,6 +266,14 @@ export async function POST(request: Request) {
             );
         }
 
+// 6) نزود عدّاد المبيعات لكل منتج
+        for (const item of enrichedItems) {
+            await supabaseAdmin.rpc("increment_sold_count", {
+                p_product_id: item.productId,
+                p_quantity: item.quantity,
+            });
+        }
+
         return NextResponse.json({ order });
     } catch (error) {
         console.error("API error:", error);

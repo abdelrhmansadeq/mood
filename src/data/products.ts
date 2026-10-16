@@ -29,4 +29,5 @@ export type Product = {
     colors: ProductColorVariant[];
     avgRating?: number;
     reviewsCount?: number;
+    soldCount?: number;
 };
