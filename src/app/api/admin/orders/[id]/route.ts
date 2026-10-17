@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { sendEmail, buildOrderStatusEmail } from "@/lib/email";
 
 type Props = {
     params: Promise<{ id: string }>;
@@ -29,7 +30,6 @@ export async function PATCH(request: Request, { params }: Props) {
         const body = await request.json();
         const { status } = body as { status: OrderStatus };
 
-        // ✅ التحقق من الـ token
         const authHeader = request.headers.get("authorization");
         const token = authHeader?.replace("Bearer ", "");
 
@@ -40,7 +40,6 @@ export async function PATCH(request: Request, { params }: Props) {
             );
         }
 
-        // التحقق من المستخدم
         const {
             data: { user },
             error: authError,
@@ -53,7 +52,6 @@ export async function PATCH(request: Request, { params }: Props) {
             );
         }
 
-        // ✅ التحقق من إن المستخدم أدمن
         const { data: adminCheck } = await supabaseAdmin
             .from("admins")
             .select("user_id")
@@ -67,7 +65,6 @@ export async function PATCH(request: Request, { params }: Props) {
             );
         }
 
-        // التحقق من الحالة
         if (!status || !VALID_STATUSES.includes(status)) {
             return NextResponse.json(
                 { error: "حالة غير صحيحة" },
@@ -78,7 +75,7 @@ export async function PATCH(request: Request, { params }: Props) {
         // ناخد الطلب الحالي
         const { data: currentOrder, error: fetchError } = await supabaseAdmin
             .from("orders")
-            .select("id, status, items")
+            .select("id, status, items, user_email, full_name, order_number")
             .eq("id", Number(id))
             .single();
 
@@ -91,13 +88,16 @@ export async function PATCH(request: Request, { params }: Props) {
 
         const oldStatus = currentOrder.status as OrderStatus;
 
-        // ✅ لو الطلب بيتلغى (ومكنش ملغي قبل كده) → نرجّع المخزون
+        // لو الحالة مش اتغيرت → منعملش أي حاجة
+        if (oldStatus === status) {
+            return NextResponse.json({ success: true });
+        }
+
+        // لو الطلب بيتلغى → نرجّع المخزون
         if (status === "cancelled" && oldStatus !== "cancelled") {
             const items = currentOrder.items as OrderItem[];
 
-            // نرجع المخزون لكل منتج
             for (const item of items) {
-                // نجيب المنتج عشان نعرف لو له ألوان
                 const { data: product } = await supabaseAdmin
                     .from("products")
                     .select("colors")
@@ -105,7 +105,9 @@ export async function PATCH(request: Request, { params }: Props) {
                     .single();
 
                 const hasColors =
-                    product?.colors && Array.isArray(product.colors) && product.colors.length > 0;
+                    product?.colors &&
+                    Array.isArray(product.colors) &&
+                    product.colors.length > 0;
 
                 if (hasColors) {
                     await supabaseAdmin.rpc("increase_product_color_stock", {
@@ -124,7 +126,7 @@ export async function PATCH(request: Request, { params }: Props) {
             }
         }
 
-        // ✅ لو الطلب رجع من "cancelled" لحالة تانية → نخصم المخزون تاني
+        // لو الطلب رجع من "cancelled" لحالة تانية → نخصم المخزون تاني
         if (oldStatus === "cancelled" && status !== "cancelled") {
             const items = currentOrder.items as OrderItem[];
 
@@ -136,7 +138,9 @@ export async function PATCH(request: Request, { params }: Props) {
                     .single();
 
                 const hasColors =
-                    product?.colors && Array.isArray(product.colors) && product.colors.length > 0;
+                    product?.colors &&
+                    Array.isArray(product.colors) &&
+                    product.colors.length > 0;
 
                 if (hasColors) {
                     await supabaseAdmin.rpc("decrease_product_color_stock", {
@@ -167,6 +171,25 @@ export async function PATCH(request: Request, { params }: Props) {
                 { error: "فشل تحديث الطلب" },
                 { status: 500 }
             );
+        }
+
+        // ✅ نبعت إيميل للعميل (لو عنده إيميل)
+        try {
+            if (currentOrder.user_email) {
+                await sendEmail({
+                    to: currentOrder.user_email,
+                    toName: currentOrder.full_name,
+                    subject: `تحديث على طلبك ${currentOrder.order_number} - Mood`,
+                    htmlContent: buildOrderStatusEmail({
+                        orderNumber: currentOrder.order_number,
+                        customerName: currentOrder.full_name,
+                        status,
+                    }),
+                });
+            }
+        } catch (emailError) {
+            // نسجّل الخطأ بس منوقفش العملية
+            console.error("Status email failed:", emailError);
         }
 
         return NextResponse.json({ success: true });

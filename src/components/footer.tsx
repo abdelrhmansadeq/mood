@@ -107,7 +107,7 @@ export default function Footer() {
                             تواصل
                         </h4>
                         <ul className="space-y-2 text-sm text-cream/70">
-                            <li dir="ltr" className="text-right">abdelrhman@gmail.com</li>
+                            <li dir="ltr" className="text-right">abdelrhmansadek215@gmail.com</li>
                             <li dir="ltr" className="text-right">01014766903</li>
                             <li>دمياط الجديدة، مصر</li>
                         </ul>

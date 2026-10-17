@@ -6,7 +6,10 @@ export type ContactMessage = {
     email: string;
     message: string;
     isRead: boolean;
+    isVerified: boolean;
+    userId: string | null;
     createdAt: string;
+    verifiedAt: string | null;
 };
 
 type SupabaseMessage = {
@@ -15,7 +18,10 @@ type SupabaseMessage = {
     email: string;
     message: string;
     is_read: boolean;
+    is_verified: boolean;
+    user_id: string | null;
     created_at: string;
+    verified_at: string | null;
 };
 
 function toMessage(row: SupabaseMessage): ContactMessage {
@@ -25,20 +31,37 @@ function toMessage(row: SupabaseMessage): ContactMessage {
         email: row.email,
         message: row.message,
         isRead: row.is_read,
+        isVerified: row.is_verified,
+        userId: row.user_id,
         createdAt: row.created_at,
+        verifiedAt: row.verified_at,
     };
 }
 
-// ✅ إرسال رسالة (من العميل)
+// ✅ إرسال رسالة
 export async function submitContactMessage(params: {
     name: string;
     email: string;
     message: string;
-}): Promise<{ error?: string }> {
+    honeypot?: string;
+}): Promise<{ error?: string; requiresVerification?: boolean }> {
     try {
+        // ناخد الـ session (لو موجود)
+        const {
+            data: { session },
+        } = await supabase.auth.getSession();
+
+        const headers: Record<string, string> = {
+            "Content-Type": "application/json",
+        };
+
+        if (session) {
+            headers.Authorization = `Bearer ${session.access_token}`;
+        }
+
         const res = await fetch("/api/contact", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers,
             body: JSON.stringify(params),
         });
 
@@ -48,14 +71,16 @@ export async function submitContactMessage(params: {
             return { error: data.error || "حصلت مشكلة" };
         }
 
-        return {};
+        return {
+            requiresVerification: data.requiresVerification === true,
+        };
     } catch (e) {
         console.error("submitContactMessage error:", e);
         return { error: "حصلت مشكلة في الاتصال" };
     }
 }
 
-// ✅ جلب الرسائل (للأدمن)
+// ✅ جلب الرسائل الموثقة فقط (للأدمن)
 export async function fetchAllMessages(): Promise<ContactMessage[]> {
     const {
         data: { session },
