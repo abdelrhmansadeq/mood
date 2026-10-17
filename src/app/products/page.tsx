@@ -21,9 +21,11 @@ export default function ProductsPage() {
     const filteredProducts = useMemo(() => {
         const filtered = products.filter((p) => {
             const matchCategory = category === "all" || p.category === category;
+            const q = searchQuery.toLowerCase();
             const matchSearch =
-                p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                p.nameEn.toLowerCase().includes(searchQuery.toLowerCase());
+                p.name.toLowerCase().includes(q) ||
+                p.nameEn.toLowerCase().includes(q) ||
+                p.description.toLowerCase().includes(q);
 
             let matchPrice = true;
             switch (priceRange) {

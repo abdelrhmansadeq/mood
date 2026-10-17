@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { sendEmail, buildOrderCancelledAdminEmail } from "@/lib/email";
 
 type Props = {
     params: Promise<{ id: string }>;
@@ -43,7 +44,7 @@ export async function POST(request: Request, { params }: Props) {
         // ✅ نجيب الطلب
         const { data: order, error: orderError } = await supabaseAdmin
             .from("orders")
-            .select("id, user_id, status, items")
+            .select("id, user_id, status, items, user_email, full_name, phone, city, total, order_number")
             .eq("id", Number(id))
             .single();
 
@@ -136,6 +137,28 @@ export async function POST(request: Request, { params }: Props) {
                     rpcError
                 );
             }
+        }
+
+        // ✅ نبعت إيميل للأدمن
+        try {
+            const adminEmail = process.env.BREVO_ADMIN_EMAIL;
+            if (adminEmail && order.user_email) {
+                await sendEmail({
+                    to: adminEmail,
+                    toName: "Mood Admin",
+                    subject: `❌ العميل ألغى الطلب ${order.order_number}`,
+                    htmlContent: buildOrderCancelledAdminEmail({
+                        orderNumber: order.order_number,
+                        customerName: order.full_name,
+                        customerEmail: order.user_email,
+                        phone: order.phone,
+                        city: order.city,
+                        total: order.total,
+                    }),
+                });
+            }
+        } catch (emailError) {
+            console.error("Cancel admin email failed:", emailError);
         }
 
         return NextResponse.json({ success: true });

@@ -377,3 +377,67 @@ ${data.message}
     </html>
   `;
 }
+// قالب إشعار الأدمن بإلغاء طلب
+export function buildOrderCancelledAdminEmail(data: {
+    orderNumber: string;
+    customerName: string;
+    customerEmail: string;
+    phone: string;
+    city: string;
+    total: number;
+}): string {
+    return `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head><meta charset="UTF-8" /></head>
+    <body style="font-family: Arial, sans-serif; background-color: #FAFAF7; margin: 0; padding: 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; border: 1px solid #eee;">
+        
+        <div style="background: #EF4444; color: white; padding: 20px; text-align: center;">
+          <h2 style="margin: 0; font-size: 22px;">❌ العميل ألغى الطلب</h2>
+        </div>
+
+        <div style="padding: 30px;">
+          
+          <p style="color: #1F1F1F; font-size: 15px; margin-bottom: 25px;">
+            عميل ألغى طلب رقم 
+            <strong style="color: #C89B5A; font-size: 18px;">${data.orderNumber}</strong>
+          </p>
+
+          <h3 style="color: #1F1F1F; border-bottom: 2px solid #C89B5A; padding-bottom: 8px;">
+            بيانات العميل
+          </h3>
+          <p style="color: #666; line-height: 1.8; font-size: 14px;">
+            <strong>الاسم:</strong> ${data.customerName}<br />
+            <strong>الإيميل:</strong> <a href="mailto:${data.customerEmail}" style="color: #C89B5A;">${data.customerEmail}</a><br />
+            <strong>التليفون:</strong> ${data.phone}<br />
+            <strong>المدينة:</strong> ${data.city}
+          </p>
+
+          <div style="background: #EF444415; border: 1px solid #EF444440; border-radius: 8px; padding: 15px; margin-top: 25px; text-align: center;">
+            <p style="margin: 0; color: #666; font-size: 13px;">قيمة الطلب الملغي</p>
+            <p style="margin: 8px 0 0; color: #EF4444; font-size: 22px; font-weight: bold;">
+              ${data.total} ج.م
+            </p>
+          </div>
+
+          <p style="color: #999; font-size: 13px; margin-top: 25px; padding-top: 15px; border-top: 1px solid #eee; text-align: center;">
+            المخزون تم إرجاعه تلقائياً للمنتجات.
+          </p>
+
+          <div style="text-align: center; margin-top: 25px;">
+            <a href="https://mood-khaki-beta.vercel.app/admin/dashboard/orders" 
+               style="display: inline-block; background: #1F1F1F; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+              افتح لوحة التحكم
+            </a>
+          </div>
+        </div>
+
+        <div style="background: #FAFAF7; padding: 20px; text-align: center; color: #999; font-size: 12px; border-top: 1px solid #eee;">
+          © ${new Date().getFullYear()} Mood. جميع الحقوق محفوظة.
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
