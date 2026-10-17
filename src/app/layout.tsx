@@ -120,6 +120,7 @@ export default function RootLayout({
                                     {children}
                                 </main>
                                 <Footer />
+                                <WhatsAppButton />
                                 <MobileNav />
                             </CartProvider>
                         </WishlistProvider>

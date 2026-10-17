@@ -9,6 +9,7 @@ import { useAuth } from "@/components/auth-context";
 import { useProducts } from "@/components/products-context";
 import { createOrder } from "@/lib/orders-api";
 import { fetchUserAddress } from "@/lib/addresses-api";
+import { z } from "zod";
 
 type FormData = {
     fullName: string;
@@ -36,20 +37,17 @@ export default function CheckoutPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
 
-    // Pre-fill from user data + saved address
     useEffect(() => {
         if (!user) return;
 
         let isMounted = true;
 
         const loadData = async () => {
-            // الأول: بيانات الحساب
             const baseData = {
                 fullName: user.user_metadata?.full_name || "",
                 phone: user.user_metadata?.phone || "",
             };
 
-            // بعدين: العنوان المحفوظ (لو موجود)
             const savedAddress = await fetchUserAddress(user.id);
             if (!isMounted) return;
 
@@ -76,7 +74,6 @@ export default function CheckoutPage() {
         };
     }, [user]);
 
-    // Redirect to login if not logged in
     useEffect(() => {
         if (!authLoading && !user) {
             router.push("/login");
@@ -98,6 +95,21 @@ export default function CheckoutPage() {
 
         if (!user) {
             setError("لازم تسجل دخول الأول");
+            return;
+        }
+
+        // ✅ التحقق من البيانات قبل إرسالها للسيرفر
+        const checkoutSchema = z.object({
+            fullName: z.string().min(3, "الاسم يجب أن يكون 3 أحرف على الأقل"),
+            phone: z.string().regex(/^01[0125][0-9]{8}$/, "رقم الموبايل غير صحيح (مثال: 01012345678)"),
+            city: z.string().min(2, "المدينة مطلوبة"),
+            address: z.string().min(5, "العنوان يجب أن يكون 5 أحرف على الأقل"),
+        });
+
+        const validation = checkoutSchema.safeParse(formData);
+
+        if (!validation.success) {
+            setError(validation.error.issues[0].message);
             return;
         }
 
@@ -153,7 +165,6 @@ export default function CheckoutPage() {
 
     if (!user) return null;
 
-    // Success Screen
     if (submitted) {
         return (
             <div className="max-w-2xl mx-auto px-6 py-20 text-center animate-fade-in">
@@ -190,7 +201,6 @@ export default function CheckoutPage() {
         );
     }
 
-    // Empty Cart
     if (items.length === 0) {
         return (
             <div className="max-w-2xl mx-auto px-6 py-20 text-center animate-fade-in">
@@ -211,7 +221,7 @@ export default function CheckoutPage() {
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12 animate-fade-in">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12 animate-fade-in pb-32 md:pb-12">
             <div className="mb-10 animate-fade-up">
                 <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2">
                     Checkout
@@ -323,7 +333,6 @@ export default function CheckoutPage() {
                                         className="flex gap-3"
                                     >
                                         <div className="relative w-14 h-16 rounded-md overflow-hidden bg-cream flex-shrink-0">
-                                            {/* eslint-disable-next-line @next/next/no-img-element */}
                                             <img
                                                 src={item.image}
                                                 alt={item.name}
@@ -366,18 +375,35 @@ export default function CheckoutPage() {
                                 </div>
                             )}
 
-                            <button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className="w-full mt-6 bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors disabled:opacity-50"
-                            >
-                                {isSubmitting ? "جاري إرسال الطلب..." : "تأكيد الطلب"}
-                            </button>
-                            <p className="text-xs text-muted text-center mt-3">
-                                الدفع عند الاستلام
-                            </p>
+                            {/* Desktop Submit Button */}
+                            <div className="hidden md:block mt-6">
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="w-full bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors disabled:opacity-50"
+                                >
+                                    {isSubmitting ? "جاري إرسال الطلب..." : "تأكيد الطلب"}
+                                </button>
+                                <p className="text-xs text-muted text-center mt-3">
+                                    الدفع عند الاستلام
+                                </p>
+                            </div>
                         </div>
                     </div>
+                </div>
+
+                {/* Mobile Sticky Submit Button */}
+                <div className="md:hidden fixed bottom-16 left-0 right-0 p-4 bg-cream/95 backdrop-blur-md border-t border-charcoal/10 z-30">
+                    <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="w-full bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors disabled:opacity-50 shadow-lg"
+                    >
+                        {isSubmitting ? "جاري إرسال الطلب..." : "تأكيد الطلب"}
+                    </button>
+                    <p className="text-xs text-muted text-center mt-2">
+                        الدفع عند الاستلام
+                    </p>
                 </div>
             </form>
         </div>

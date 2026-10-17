@@ -4,6 +4,7 @@ import Link from "next/link";
 import ProductCard from "@/components/product-card";
 import { useProducts } from "@/components/products-context";
 import { ProductGridSkeleton } from "@/components/skeleton";
+import AiStylist from "@/components/ai-stylist";
 
 export default function Home() {
     const { products, isLoading } = useProducts();
@@ -210,6 +211,9 @@ export default function Home() {
                     </div>
                 </section>
             )}
+
+            {/* 🌟 AI Stylist Section */}
+            <AiStylist />
 
             {/* Final CTA */}
             <section className="py-16 md:py-20 bg-cream">

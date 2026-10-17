@@ -3,12 +3,11 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { Product, ProductSizes } from "@/data/products";
-import { getCategoryLabel } from "@/data/products";
 import { useCart } from "./cart-context";
 import { useToast } from "./toast-context";
 import { useWishlist } from "./wishlist-context";
 import ProductReviews from "./product-reviews";
-
+import RecentlyViewed from "./recently-viewed";
 
 type Props = {
     product: Product;
@@ -31,7 +30,20 @@ export default function ProductDetail({ product, related }: Props) {
     const { toggleItem, isInWishlist } = useWishlist();
     const isFavorite = isInWishlist(product.id);
 
-    // سعر البيع الفعلي
+    // حفظ المنتج في "شوهدت مؤخراً"
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem("mood-recently-viewed");
+            let list: Product[] = stored ? JSON.parse(stored) : [];
+            list = list.filter((p) => p.id !== product.id);
+            list.unshift(product);
+            list = list.slice(0, 10);
+            localStorage.setItem("mood-recently-viewed", JSON.stringify(list));
+        } catch (e) {
+            console.error(e);
+        }
+    }, [product]);
+
     const hasSale =
         product.salePrice != null && product.salePrice < product.price;
     const finalPrice = hasSale ? product.salePrice! : product.price;
@@ -55,9 +67,6 @@ export default function ProductDetail({ product, related }: Props) {
         ? product.colors[selectedColorIndex]?.image
         : null;
 
-    // ✅ قايمة الصور:
-    // - لو في ألوان: صورة اللون + باقي الصور
-    // - لو مفيش: images أو image
     const galleryImages: string[] = (() => {
         const baseImages =
             product.images && product.images.length > 0
@@ -65,7 +74,6 @@ export default function ProductDetail({ product, related }: Props) {
                 : [product.image];
 
         if (hasColors && currentColorImage) {
-            // نضمن إن صورة اللون أول واحدة، من غير تكرار
             const others = baseImages.filter((img) => img !== currentColorImage);
             return [currentColorImage, ...others];
         }
@@ -77,22 +85,17 @@ export default function ProductDetail({ product, related }: Props) {
         galleryImages[0]
     );
 
-    // لما اللون يتغير، نرجع نحدد صورة اللون
     useEffect(() => {
         if (hasColors && currentColorImage) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSelectedImage(currentColorImage);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedColorIndex]);
+    }, [selectedColorIndex, hasColors, currentColorImage]);
 
     const firstAvailableSize = SIZES.find((s) => (currentSizes[s] || 0) > 0);
 
     useEffect(() => {
         if (firstAvailableSize && (currentSizes[selectedSize] || 0) === 0) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSelectedSize(firstAvailableSize);
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setQuantity(1);
         }
     }, [selectedColorIndex, firstAvailableSize, currentSizes, selectedSize]);
@@ -145,7 +148,6 @@ export default function ProductDetail({ product, related }: Props) {
 
     return (
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8 md:py-12 pb-32 md:pb-12">
-            {/* Breadcrumbs */}
             <nav className="text-sm text-muted mb-8 animate-fade-in hidden md:block">
                 <Link href="/" className="hover:text-gold">الرئيسية</Link>
                 <span className="mx-2">/</span>
@@ -154,16 +156,12 @@ export default function ProductDetail({ product, related }: Props) {
                 <span className="text-charcoal">{product.name}</span>
             </nav>
 
-            {/* Main Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 mb-20">
-                {/* Image + Gallery */}
                 <div className="animate-fade-in">
-                    {/* Main Image */}
                     <div
                         className="relative w-full rounded-lg overflow-hidden bg-cream"
                         style={{ aspectRatio: "3 / 4" }}
                     >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                             key={selectedImage}
                             src={selectedImage}
@@ -184,7 +182,6 @@ export default function ProductDetail({ product, related }: Props) {
                         )}
                     </div>
 
-                    {/* Thumbnails */}
                     {hasGallery && (
                         <div className="mt-3 flex gap-2 overflow-x-auto pb-2">
                             {galleryImages.map((img, idx) => (
@@ -198,7 +195,6 @@ export default function ProductDetail({ product, related }: Props) {
                                             : "border-charcoal/10 hover:border-charcoal/40"
                                     }`}
                                 >
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
                                         src={img}
                                         alt={`${product.name} - صورة ${idx + 1}`}
@@ -210,14 +206,19 @@ export default function ProductDetail({ product, related }: Props) {
                     )}
                 </div>
 
-                {/* Info */}
                 <div className="flex flex-col animate-fade-up">
-                    {/* Category */}
                     <p className="text-gold text-xs font-medium tracking-widest uppercase mb-3">
-                        {getCategoryLabel(product.category)}
+                        {product.category === "men"
+                            ? "رجالي"
+                            : product.category === "women"
+                                ? "نسائي"
+                                : product.category === "kids"
+                                    ? "أطفال"
+                                    : product.category === "shoes"
+                                        ? "أحذية"
+                                        : "إكسسوارات"}
                     </p>
 
-                    {/* Title + Wishlist */}
                     <div className="flex items-start justify-between gap-3 mb-2">
                         <h1 className="text-2xl md:text-4xl font-bold text-charcoal">
                             {product.name}
@@ -256,7 +257,6 @@ export default function ProductDetail({ product, related }: Props) {
                         {product.nameEn}
                     </p>
 
-                    {/* Price */}
                     {hasSale ? (
                         <div className="flex items-center gap-3 flex-wrap mb-3 md:mb-4">
                             <p className="text-2xl md:text-3xl font-bold text-error">
@@ -280,7 +280,6 @@ export default function ProductDetail({ product, related }: Props) {
                         </p>
                     )}
 
-                    {/* Stock Status */}
                     {isOutOfStock ? (
                         <p className="text-sm text-error font-medium mb-4 md:mb-6">
                             نفد المخزون
@@ -295,12 +294,10 @@ export default function ProductDetail({ product, related }: Props) {
                         </p>
                     )}
 
-                    {/* Description */}
                     <p className="text-charcoal/80 leading-relaxed mb-6 md:mb-8 text-sm md:text-base">
                         {product.description}
                     </p>
 
-                    {/* Color Picker */}
                     {hasColors && (
                         <div className="mb-5 md:mb-6">
                             <div className="flex items-center justify-between mb-3">
@@ -346,7 +343,6 @@ export default function ProductDetail({ product, related }: Props) {
                         </div>
                     )}
 
-                    {/* Size Picker */}
                     <div className="mb-5 md:mb-6">
                         <div className="flex items-center justify-between mb-3">
                             <label className="text-sm font-medium text-charcoal">المقاس</label>
@@ -379,7 +375,6 @@ export default function ProductDetail({ product, related }: Props) {
                         </div>
                     </div>
 
-                    {/* Quantity + Add to Cart (Desktop) */}
                     <div className="hidden md:flex items-center gap-4 mb-2">
                         <div className="flex items-center border border-charcoal/20 rounded-md">
                             <button
@@ -414,14 +409,12 @@ export default function ProductDetail({ product, related }: Props) {
                         </button>
                     </div>
 
-                    {/* Max Reached */}
                     {reachedMax && canAddToCart && (
                         <p className="text-xs text-gold mb-4 md:mb-6">
                             وصلت للحد الأقصى المتاح ({sizeStock} قطعة)
                         </p>
                     )}
 
-                    {/* Info Boxes */}
                     <div className="border-t border-charcoal/10 pt-5 md:pt-6 space-y-2 md:space-y-3 text-sm text-charcoal/70">
                         <p>✓ شحن مجاني للطلبات أكثر من 500 ج.م</p>
                         <p>✓ إرجاع مجاني خلال 14 يوم</p>
@@ -430,7 +423,6 @@ export default function ProductDetail({ product, related }: Props) {
                 </div>
             </div>
 
-            {/* Related Products */}
             {related.length > 0 && (
                 <section>
                     <h2 className="text-xl md:text-2xl font-bold text-charcoal mb-5 md:mb-6 animate-fade-up">
@@ -454,7 +446,6 @@ export default function ProductDetail({ product, related }: Props) {
                                         className="relative w-full overflow-hidden bg-cream"
                                         style={{ aspectRatio: "3 / 4" }}
                                     >
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img
                                             src={p.image}
                                             alt={p.name}
@@ -480,7 +471,7 @@ export default function ProductDetail({ product, related }: Props) {
                 </section>
             )}
 
-            {/* Reviews */}
+            <RecentlyViewed currentProductId={product.id} />
             <ProductReviews productId={product.id} />
 
             {/* MOBILE STICKY BAR */}

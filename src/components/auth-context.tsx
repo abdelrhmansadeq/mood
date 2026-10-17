@@ -4,6 +4,24 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import type { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
+// دالة ترجمة رسائل الأخطاء
+function translateAuthError(error: string): string {
+    const msg = error.toLowerCase();
+    if (msg.includes("user already registered") || msg.includes("already in use")) {
+        return "هذا الإيميل مسجل بالفعل. يرجى تسجيل الدخول.";
+    }
+    if (msg.includes("invalid login credentials")) {
+        return "الإيميل أو كلمة المرور غير صحيحة.";
+    }
+    if (msg.includes("password should be at least")) {
+        return "كلمة المرور قصيرة جداً (6 أحرف على الأقل).";
+    }
+    if (msg.includes("email not confirmed")) {
+        return "يرجى تأكيد الإيميل أولاً من خلال الرابط المرسل إليك.";
+    }
+    return "حدث خطأ ما، يرجى المحاولة مرة أخرى.";
+}
+
 type AuthContextType = {
     user: User | null;
     session: Session | null;
@@ -56,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 },
             });
 
-            if (error) return { error: error.message };
+            if (error) return { error: translateAuthError(error.message) };
             if (!data.user) return { error: "فشل إنشاء الحساب" };
 
             return { error: null };
@@ -73,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 password,
             });
 
-            if (error) return { error: error.message };
+            if (error) return { error: translateAuthError(error.message) };
             return { error: null };
         } catch (e) {
             console.error("SignIn error:", e);
