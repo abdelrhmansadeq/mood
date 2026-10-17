@@ -11,6 +11,7 @@ type AuthContextType = {
     signUp: (email: string, password: string, fullName: string, phone: string) => Promise<{ error: string | null }>;
     signIn: (email: string, password: string) => Promise<{ error: string | null }>;
     signOut: () => Promise<void>;
+    signInWithGoogle: () => Promise<{ error: string | null }>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -21,14 +22,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Get initial session
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
             setUser(session?.user ?? null);
             setIsLoading(false);
         });
 
-        // Listen for auth changes
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -86,8 +85,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await supabase.auth.signOut();
     };
 
+    const signInWithGoogle = async () => {
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: "google",
+                options: {
+                    redirectTo: `${window.location.origin}/account`,
+                },
+            });
+
+            if (error) return { error: error.message };
+            return { error: null };
+        } catch (e) {
+            console.error("Google sign in error:", e);
+            return { error: "حصلت مشكلة، حاول تاني" };
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, session, isLoading, signUp, signIn, signOut }}>
+        <AuthContext.Provider value={{ user, session, isLoading, signUp, signIn, signOut, signInWithGoogle }}>
             {children}
         </AuthContext.Provider>
     );

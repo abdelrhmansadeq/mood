@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useAuth } from "@/components/auth-context";
+import GoogleLoginButton from "@/components/google-login-button";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -100,6 +101,8 @@ export default function LoginPage() {
                         {isLoading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
                     </button>
                 </form>
+
+                <GoogleLoginButton />
 
                 <p className="text-center text-sm text-muted mt-6">
                     معندكش حساب؟{" "}
