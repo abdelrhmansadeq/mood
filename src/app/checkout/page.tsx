@@ -37,6 +37,12 @@ export default function CheckoutPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
 
+    // ✅ حالات كود الخصم
+    const [couponCode, setCouponCode] = useState("");
+    const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null);
+    const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+    const [couponError, setCouponError] = useState("");
+
     // ✅ التحقق من المخزون قبل الشحن
     const outOfStockItems = useMemo(() => {
         return items.filter((item) => {
@@ -104,8 +110,37 @@ export default function CheckoutPage() {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    // ✅ دالة تطبيق الكوبون
+    const handleApplyCoupon = async () => {
+        if (!couponCode.trim()) return;
+        setIsApplyingCoupon(true);
+        setCouponError("");
+
+        try {
+            const res = await fetch("/api/coupons/validate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code: couponCode, cartTotal: totalPrice }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) throw new Error(data.error || "كود الخصم غير صالح");
+
+            setAppliedCoupon(data.coupon);
+            setCouponCode("");
+        } catch (err) {
+            // ✅ هنا التعديل: شيلنا any وحطينا unknown
+            const errorMessage = err instanceof Error ? err.message : "حصلت مشكلة في تطبيق الكود";
+            setCouponError(errorMessage);
+        } finally {
+            setIsApplyingCoupon(false);
+        }
+    };
     const shipping = totalPrice >= 500 ? 0 : 50;
-    const finalTotal = totalPrice + shipping;
+    const discountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
+    // ✅ الإجمالي النهائي بعد الخصم (بنضمن إنه ميكونش بالسالب)
+    const finalTotal = Math.max(0, totalPrice + shipping - discountAmount);
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -116,7 +151,6 @@ export default function CheckoutPage() {
             return;
         }
 
-        // ✅ التحقق من البيانات قبل إرسالها للسيرفر
         const checkoutSchema = z.object({
             fullName: z.string().min(3, "الاسم يجب أن يكون 3 أحرف على الأقل"),
             phone: z.string().regex(/^01[0125][0-9]{8}$/, "رقم الموبايل غير صحيح (مثال: 01012345678)"),
@@ -155,6 +189,9 @@ export default function CheckoutPage() {
                     color: item.color,
                     quantity: item.quantity,
                 })),
+                // ✅ بنبعت الكوبون للسيرفر عشان يتم توثيقه وحفظه
+                couponCode: appliedCoupon?.code || null,
+                discountAmount: discountAmount,
             });
 
             if (result.error) {
@@ -385,6 +422,47 @@ export default function CheckoutPage() {
                                 })}
                             </div>
 
+                            {/* ✅ قسم كود الخصم */}
+                            <div className="border-t border-charcoal/10 pt-4 pb-4">
+                                <label className="block text-sm font-medium text-charcoal mb-2">
+                                    كود الخصم
+                                </label>
+                                {!appliedCoupon ? (
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={couponCode}
+                                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                            placeholder="أدخل الكود هنا"
+                                            className="flex-1 px-3 py-2 rounded-md border border-charcoal/15 bg-cream text-sm text-charcoal focus:outline-none focus:border-gold uppercase transition-colors"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleApplyCoupon}
+                                            disabled={isApplyingCoupon || !couponCode.trim()}
+                                            className="bg-charcoal hover:bg-gold text-cream hover:text-charcoal px-4 rounded-md text-sm font-medium transition-colors disabled:opacity-50"
+                                        >
+                                            {isApplyingCoupon ? "..." : "تطبيق"}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-between bg-success/10 border border-success/30 rounded-md p-3">
+                                        <div className="flex items-center gap-2 text-success">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                                            <span className="text-sm font-bold">{appliedCoupon.code}</span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setAppliedCoupon(null)}
+                                            className="text-error hover:text-error/80 text-xs font-bold"
+                                        >
+                                            إلغاء
+                                        </button>
+                                    </div>
+                                )}
+                                {couponError && <p className="text-error text-xs mt-2">{couponError}</p>}
+                            </div>
+
                             <div className="border-t border-charcoal/10 pt-5 space-y-2 text-sm">
                                 <div className="flex justify-between text-muted">
                                     <span>المجموع الفرعي</span>
@@ -394,6 +472,13 @@ export default function CheckoutPage() {
                                     <span>الشحن</span>
                                     <span>{shipping === 0 ? "مجاني" : `${shipping} ج.م`}</span>
                                 </div>
+                                {/* ✅ عرض الخصم لو موجود */}
+                                {appliedCoupon && (
+                                    <div className="flex justify-between text-success font-medium">
+                                        <span>الخصم ({appliedCoupon.code})</span>
+                                        <span>-{discountAmount} ج.م</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between text-base font-bold text-charcoal pt-3 border-t border-charcoal/10">
                                     <span>الإجمالي</span>
                                     <span>{finalTotal} ج.م</span>

@@ -3,7 +3,6 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendEmail, buildCustomerOrderEmail, buildAdminOrderEmail } from "@/lib/email";
 import { z } from "zod";
 
-// ✅ 1. تعريف شكل البيانات والتحقق منها باستخدام Zod
 const orderSchema = z.object({
     fullName: z.string().min(3, "الاسم يجب أن يكون 3 أحرف على الأقل").max(50),
     phone: z.string().regex(/^01[0125][0-9]{8}$/, "رقم الموبايل غير صحيح (مثال: 01012345678)"),
@@ -20,6 +19,9 @@ const orderSchema = z.object({
         color: z.string(),
         quantity: z.number().int().positive("الكمية يجب أن تكون رقم صحيح أكبر من صفر").max(10, "الحد الأقصى 10 قطع"),
     })).min(1, "السلة فاضية"),
+    // ✅ ضفنا الكوبون في الـ Schema
+    couponCode: z.string().optional().nullable(),
+    discountAmount: z.number().optional(),
 });
 
 type SupabaseProduct = {
@@ -36,14 +38,13 @@ export async function POST(request: Request) {
     try {
         const body = await request.json();
 
-        // ✅ 2. التحقق من البيانات باستخدام Zod
         const validation = orderSchema.safeParse(body);
         if (!validation.success) {
             const firstError = validation.error.issues[0].message;
             return NextResponse.json({ error: firstError }, { status: 400 });
         }
 
-        const { fullName, phone, city, address, notes, items } = validation.data;
+        const { fullName, phone, city, address, notes, items, couponCode } = validation.data;
 
         const authHeader = request.headers.get("authorization");
         const token = authHeader?.replace("Bearer ", "");
@@ -81,7 +82,6 @@ export async function POST(request: Request) {
             }
         }
 
-        // حساب السعر الفعلي من الداتابيز (تجاهل سعر الفرونت إند)
         const enrichedItems = items.map((item) => {
             const product = dbProducts.find((p: SupabaseProduct) => p.id === item.productId)!;
             const effectivePrice = product.sale_price != null && product.sale_price < product.price ? product.sale_price : product.price;
@@ -90,7 +90,38 @@ export async function POST(request: Request) {
 
         const subtotal = enrichedItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
         const shipping = subtotal >= 500 ? 0 : 50;
-        const total = subtotal + shipping;
+
+        // ✅ التحقق من الكوبون في السيرفر (تأمين ضد التلاعب)
+        let actualDiscount = 0;
+        let validCoupon = null;
+
+        if (couponCode) {
+            const { data: coupon } = await supabaseAdmin
+                .from("coupons")
+                .select("*")
+                .eq("code", couponCode.trim().toUpperCase())
+                .eq("is_active", true)
+                .single();
+
+            if (coupon) {
+                const isExpired = coupon.expires_at && new Date(coupon.expires_at) < new Date();
+                const isMaxed = coupon.max_uses && coupon.used_count >= coupon.max_uses;
+                const isMinAmountMet = subtotal >= coupon.min_order_amount;
+
+                if (!isExpired && !isMaxed && isMinAmountMet) {
+                    validCoupon = coupon;
+                    if (coupon.discount_percentage) {
+                        actualDiscount = (subtotal * coupon.discount_percentage) / 100;
+                    } else if (coupon.discount_fixed) {
+                        actualDiscount = coupon.discount_fixed;
+                    }
+                    if (actualDiscount > subtotal) actualDiscount = subtotal; // الخصم ميكونش أكبر من السعر
+                    actualDiscount = Math.round(actualDiscount);
+                }
+            }
+        }
+
+        const total = Math.max(0, subtotal + shipping - actualDiscount);
 
         // خصم المخزون
         const deductedItems: Array<{ productId: number; color: string; size: string; quantity: number; hasColors: boolean; }> = [];
@@ -111,7 +142,6 @@ export async function POST(request: Request) {
             }
 
             if (!success) {
-                // Rollback
                 for (const deducted of deductedItems) {
                     if (deducted.hasColors) await supabaseAdmin.rpc("increase_product_color_stock", { p_product_id: deducted.productId, p_color_name: deducted.color, p_size: deducted.size, p_quantity: deducted.quantity });
                     else await supabaseAdmin.rpc("increase_product_size_stock", { p_product_id: deducted.productId, p_size: deducted.size, p_quantity: deducted.quantity });
@@ -121,7 +151,7 @@ export async function POST(request: Request) {
             deductedItems.push({ productId: item.productId, color: item.color, size: item.size, quantity: item.quantity, hasColors });
         }
 
-        // ✅ 3. توليد رقم طلب فريد (منع التكرار)
+        // توليد رقم طلب فريد
         let orderNumber = "";
         let isUnique = false;
         let retries = 0;
@@ -133,15 +163,24 @@ export async function POST(request: Request) {
             retries++;
         }
 
-        if (!isUnique) {
-            throw new Error("فشل توليد رقم طلب فريد، جرب تاني.");
-        }
+        if (!isUnique) throw new Error("فشل توليد رقم طلب فريد، جرب تاني.");
 
-        // إنشاء الطلب
+        // ✅ إنشاء الطلب مع حفظ الخصم والكوبون
         const { data: order, error: orderError } = await supabaseAdmin.from("orders").insert({
-            user_id: userId, user_email: userEmail, order_number: orderNumber,
-            full_name: fullName, phone, city, address, notes: notes || null,
-            subtotal, shipping, total, items: enrichedItems,
+            user_id: userId,
+            user_email: userEmail,
+            order_number: orderNumber,
+            full_name: fullName,
+            phone,
+            city,
+            address,
+            notes: notes || null,
+            subtotal,
+            shipping,
+            total,
+            items: enrichedItems,
+            discount_amount: actualDiscount,
+            coupon_code: validCoupon ? validCoupon.code : null,
         }).select().single();
 
         if (orderError) {
@@ -153,13 +192,31 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "فشل إنشاء الطلب" }, { status: 500 });
         }
 
+        // ✅ زيادة عداد استخدام الكوبون (لو كان مستخدم)
+        if (validCoupon) {
+            await supabaseAdmin
+                .from("coupons")
+                .update({ used_count: validCoupon.used_count + 1 })
+                .eq("id", validCoupon.id);
+        }
+
         // زيادة عدّاد المبيعات
         for (const item of enrichedItems) {
             await supabaseAdmin.rpc("increment_sold_count", { p_product_id: item.productId, p_quantity: item.quantity });
         }
 
-        // ✅ 4. إرسال الإيميلات (بدون تعطيل الرد)
-        const emailData = { orderNumber, customerName: fullName, phone, city, address, subtotal, shipping, total, items: enrichedItems.map((i) => ({ name: i.name, size: i.size, color: i.color, quantity: i.quantity, price: i.price })) };
+        // إرسال الإيميلات
+        const emailData = {
+            orderNumber,
+            customerName: fullName,
+            phone,
+            city,
+            address,
+            subtotal,
+            shipping,
+            total, // هنبعت الإجمالي النهائي
+            items: enrichedItems.map((i) => ({ name: i.name, size: i.size, color: i.color, quantity: i.quantity, price: i.price }))
+        };
 
         if (userEmail) {
             sendEmail({ to: userEmail, toName: fullName, subject: `تأكيد طلبك ${orderNumber} - Mood`, htmlContent: buildCustomerOrderEmail(emailData) })

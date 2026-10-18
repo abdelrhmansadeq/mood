@@ -21,6 +21,8 @@ export type Order = {
     notes: string | null;
     subtotal: number;
     shipping: number;
+    discountAmount: number; // ✅ جديد
+    couponCode: string | null; // ✅ جديد
     total: number;
     items: OrderItem[];
     status: "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
@@ -40,6 +42,8 @@ type SupabaseOrder = {
     notes: string | null;
     subtotal: number;
     shipping: number;
+    discount_amount: number | null;
+    coupon_code: string | null;
     total: number;
     items: OrderItem[];
     status: "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
@@ -57,6 +61,8 @@ function toOrder(row: SupabaseOrder): Order {
         notes: row.notes,
         subtotal: row.subtotal,
         shipping: row.shipping,
+        discountAmount: row.discount_amount || 0,
+        couponCode: row.coupon_code || null,
         total: row.total,
         items: row.items,
         status: row.status,
@@ -72,11 +78,11 @@ export async function createOrder(params: {
     address: string;
     notes: string;
     items: OrderItem[];
+    couponCode?: string | null;
+    discountAmount?: number;
 }): Promise<{ order?: Order; error?: string }> {
     try {
-        const {
-            data: { session },
-        } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
 
         if (!session) {
             return { error: "لازم تسجل دخول الأول" };
@@ -108,6 +114,8 @@ export async function createOrder(params: {
                 notes: data.order.notes,
                 subtotal: data.order.subtotal,
                 shipping: data.order.shipping,
+                discountAmount: data.order.discount_amount || 0,
+                couponCode: data.order.coupon_code || null,
                 total: data.order.total,
                 items: data.order.items,
                 status: data.order.status,
@@ -136,21 +144,16 @@ export async function fetchUserOrders(userId: string): Promise<Order[]> {
     return (data as SupabaseOrder[]).map(toOrder);
 }
 
-// ✅ دالة محمية: تجيب الطلب بشرط إنه يكون بتاع المستخدم الحالي
 export async function fetchOrderById(orderId: number): Promise<Order | null> {
-    const {
-        data: { session },
-    } = await supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
 
-    if (!session?.user) {
-        return null;
-    }
+    if (!session?.user) return null;
 
     const { data, error } = await supabase
         .from("orders")
         .select("*")
         .eq("id", orderId)
-        .eq("user_id", session.user.id) // ✅ فلترة إجبارية لمنع IDOR
+        .eq("user_id", session.user.id)
         .maybeSingle();
 
     if (error) {
@@ -164,9 +167,7 @@ export async function fetchOrderById(orderId: number): Promise<Order | null> {
 }
 
 export async function fetchAllOrders(): Promise<Order[]> {
-    const {
-        data: { session },
-    } = await supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
         throw new Error("لازم تسجل دخول الأول");
@@ -192,13 +193,9 @@ export async function updateOrderStatus(
     status: Order["status"]
 ): Promise<{ error?: string }> {
     try {
-        const {
-            data: { session },
-        } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
 
-        if (!session) {
-            return { error: "لازم تسجل دخول الأول" };
-        }
+        if (!session) return { error: "لازم تسجل دخول الأول" };
 
         const res = await fetch(`/api/admin/orders/${orderId}`, {
             method: "PATCH",
@@ -211,9 +208,7 @@ export async function updateOrderStatus(
 
         const data = await res.json();
 
-        if (!res.ok) {
-            return { error: data.error || "حصلت مشكلة" };
-        }
+        if (!res.ok) return { error: data.error || "حصلت مشكلة" };
 
         return {};
     } catch (e) {
@@ -224,13 +219,9 @@ export async function updateOrderStatus(
 
 export async function cancelOrder(orderId: number): Promise<{ error?: string }> {
     try {
-        const {
-            data: { session },
-        } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
 
-        if (!session) {
-            return { error: "لازم تسجل دخول الأول" };
-        }
+        if (!session) return { error: "لازم تسجل دخول الأول" };
 
         const res = await fetch(`/api/orders/${orderId}/cancel`, {
             method: "POST",
@@ -241,9 +232,7 @@ export async function cancelOrder(orderId: number): Promise<{ error?: string }> 
 
         const data = await res.json();
 
-        if (!res.ok) {
-            return { error: data.error || "حصلت مشكلة" };
-        }
+        if (!res.ok) return { error: data.error || "حصلت مشكلة" };
 
         return {};
     } catch (e) {
