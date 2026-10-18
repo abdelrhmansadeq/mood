@@ -4,10 +4,12 @@ import { MessageListSkeleton } from "@/components/skeleton";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAdmin } from "@/components/admin-context";
+import { useToast } from "@/components/toast-context"; // ✅ ضفنا الإشعارات
 import { fetchAllMessages, type ContactMessage } from "@/lib/contact-api";
 
 export default function AdminMessagesPage() {
     const { isLoggedIn } = useAdmin();
+    const { showToast } = useToast(); // ✅
     const [messages, setMessages] = useState<ContactMessage[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
@@ -16,9 +18,12 @@ export default function AdminMessagesPage() {
         if (!isLoggedIn) return;
         fetchAllMessages()
             .then(setMessages)
-            .catch((e) => console.error(e))
+            .catch((e) => {
+                console.error(e);
+                showToast("فشل تحميل الرسائل، حاول تحديث الصفحة", "error"); // ✅
+            })
             .finally(() => setIsLoading(false));
-    }, [isLoggedIn]);
+    }, [isLoggedIn, showToast]);
 
     const filteredMessages = messages.filter((m) => {
         if (filter === "unread") return !m.isRead;
@@ -152,7 +157,7 @@ export default function AdminMessagesPage() {
                             {/* Actions */}
                             <div className="flex gap-2 pt-4 border-t border-charcoal/10">
                                 <a
-                                    href={`mailto:${msg.email}?subject=رد على رسالتك - Mood&body=مرحباً ${msg.name}،`}
+                                    href={`mailto:${msg.email}?subject=${encodeURIComponent("رد على رسالتك - Mood")}&body=${encodeURIComponent(`مرحباً ${msg.name}،\n\n`)}`}
                                     className="text-xs font-medium bg-charcoal hover:bg-gold text-cream hover:text-charcoal px-4 py-2 rounded-md transition-colors"
                                 >
                                     رد عبر الإيميل

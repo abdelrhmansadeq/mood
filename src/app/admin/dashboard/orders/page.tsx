@@ -38,9 +38,12 @@ export default function AdminOrdersPage() {
         if (!isLoggedIn) return;
         fetchAllOrders()
             .then(setOrders)
-            .catch((e) => console.error(e))
+            .catch((e) => {
+                console.error(e);
+                showToast("فشل تحميل الطلبات، حاول تحديث الصفحة", "error");
+            })
             .finally(() => setIsLoading(false));
-    }, [isLoggedIn]);
+    }, [isLoggedIn, showToast]);
 
     useEffect(() => {
         if (!lastRealtimeEvent || !isLoggedIn) return;
@@ -58,6 +61,7 @@ export default function AdminOrdersPage() {
         newStatus: Order["status"]
     ) => {
         const previousOrders = orders;
+        // Optimistic UI Update
         setOrders((prev) =>
             prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
         );
@@ -66,7 +70,7 @@ export default function AdminOrdersPage() {
         const result = await updateOrderStatus(orderId, newStatus);
 
         if (result.error) {
-            setOrders(previousOrders);
+            setOrders(previousOrders); // Rollback on error
             showToast(result.error, "error");
         } else {
             showToast("تم تحديث حالة الطلب", "success");
@@ -249,8 +253,9 @@ export default function AdminOrdersPage() {
                                                 <p className="text-sm font-medium text-charcoal truncate">
                                                     {item.name}
                                                 </p>
+                                                {/* ✅ إضافة اللون بجانب المقاس */}
                                                 <p className="text-xs text-muted">
-                                                    {item.size} × {item.quantity}
+                                                    المقاس: {item.size} | اللون: {item.color} | الكمية: {item.quantity}
                                                 </p>
                                             </div>
                                             <p className="text-sm font-semibold text-charcoal whitespace-nowrap">

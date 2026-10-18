@@ -136,11 +136,21 @@ export async function fetchUserOrders(userId: string): Promise<Order[]> {
     return (data as SupabaseOrder[]).map(toOrder);
 }
 
+// ✅ دالة محمية: تجيب الطلب بشرط إنه يكون بتاع المستخدم الحالي
 export async function fetchOrderById(orderId: number): Promise<Order | null> {
+    const {
+        data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.user) {
+        return null;
+    }
+
     const { data, error } = await supabase
         .from("orders")
         .select("*")
         .eq("id", orderId)
+        .eq("user_id", session.user.id) // ✅ فلترة إجبارية لمنع IDOR
         .maybeSingle();
 
     if (error) {

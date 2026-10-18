@@ -201,29 +201,61 @@ export default function AdminProductsPage() {
         });
     };
 
+    // ✅ تعديل دالة الحفظ لإضافة تحقق أمني صارم
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
 
-        if (
-            formData.salePrice !== null &&
-            formData.salePrice >= formData.price
-        ) {
-            showToast("سعر الخصم لازم يكون أقل من السعر الأصلي", "error");
+        // 1. التحقق من الأسعار
+        if (formData.price <= 0) {
+            showToast("السعر الأساسي يجب أن يكون أكبر من صفر", "error");
             return;
         }
 
+        if (formData.salePrice !== null) {
+            if (formData.salePrice <= 0) {
+                showToast("سعر الخصم يجب أن يكون أكبر من صفر", "error");
+                return;
+            }
+            if (formData.salePrice >= formData.price) {
+                showToast("سعر الخصم لازم يكون أقل من السعر الأصلي", "error");
+                return;
+            }
+        }
+
+        // 2. التحقق من الألوان
         const incompleteColors: string[] = [];
+        const colorNames = new Set<string>();
+
         formData.colors.forEach((c, i) => {
-            if (!c.name.trim() || !c.image.trim()) {
+            const cleanName = c.name.trim();
+            if (!cleanName || !c.image.trim()) {
                 incompleteColors.push(`لون رقم ${i + 1}`);
+            } else if (colorNames.has(cleanName)) {
+                incompleteColors.push(`لون مكرر (${cleanName})`);
+            } else {
+                colorNames.add(cleanName);
             }
         });
 
         if (incompleteColors.length > 0) {
             showToast(
-                `الألوان دي ناقصة: ${incompleteColors.join(", ")}`,
+                `مشكلة في الألوان: ${incompleteColors.join(", ")}`,
                 "error"
             );
+            return;
+        }
+
+        // 3. التحقق من المخزون (لا يوجد كسور عشرية ولا أرقام سالبة)
+        const allSizesToCheck = hasColors
+            ? formData.colors.flatMap((c) => Object.values(c.sizes || {}))
+            : Object.values(formData.sizes);
+
+        const hasInvalidStock = allSizesToCheck.some(
+            (qty) => !Number.isInteger(qty) || qty < 0
+        );
+
+        if (hasInvalidStock) {
+            showToast("المخزون يجب أن يكون أرقام صحيحة ولا يقبل السالب أو الكسور", "error");
             return;
         }
 
@@ -297,8 +329,7 @@ export default function AdminProductsPage() {
                             const sizes = p.sizes || emptySizes;
                             const colors = p.colors || [];
                             const total = calcTotal(sizes, colors);
-                            const hasSale =
-                                p.salePrice != null && p.salePrice < p.price;
+                            const hasSale = p.salePrice != null && p.salePrice < p.price;
                             return (
                                 <tr
                                     key={p.id}
@@ -434,8 +465,7 @@ export default function AdminProductsPage() {
                         const sizes = p.sizes || emptySizes;
                         const colors = p.colors || [];
                         const total = calcTotal(sizes, colors);
-                        const hasSale =
-                            p.salePrice != null && p.salePrice < p.price;
+                        const hasSale = p.salePrice != null && p.salePrice < p.price;
                         return (
                             <div
                                 key={p.id}
@@ -631,7 +661,7 @@ export default function AdminProductsPage() {
                                             type="number"
                                             name="price"
                                             required
-                                            min="0"
+                                            min="1"
                                             value={formData.price}
                                             onChange={handleChange}
                                             className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold"
@@ -645,7 +675,7 @@ export default function AdminProductsPage() {
                                         <input
                                             type="number"
                                             name="salePrice"
-                                            min="0"
+                                            min="1"
                                             value={formData.salePrice ?? ""}
                                             onChange={handleChange}
                                             placeholder="اتركه فاضي لو مفيش خصم"
@@ -898,6 +928,7 @@ export default function AdminProductsPage() {
                                                                         <input
                                                                             type="number"
                                                                             min="0"
+                                                                            step="1"
                                                                             value={color.sizes[size]}
                                                                             onChange={(e) =>
                                                                                 updateColorSize(
@@ -937,6 +968,7 @@ export default function AdminProductsPage() {
                                                         <input
                                                             type="number"
                                                             min="0"
+                                                            step="1"
                                                             value={formData.sizes[size]}
                                                             onChange={(e) =>
                                                                 handleSizeChange(size, Number(e.target.value))
