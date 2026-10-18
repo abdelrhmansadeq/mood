@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 
 export default function WhatsAppButton() {
     const pathname = usePathname();
+    const isProductPage = /^\/products\/\d+/.test(pathname);
 
     // نخفي الزرار في لوحة التحكم عشان منزحمش شغل الأدمن
     if (pathname.startsWith("/admin")) return null;
@@ -13,7 +14,10 @@ export default function WhatsAppButton() {
             href="https://wa.me/201014766903" // 👈 غير الرقم ده لرقمك الحقيقي لو مختلف
             target="_blank"
             rel="noopener noreferrer"
-            className="fixed bottom-20 md:bottom-8 right-4 md:right-8 z-50 bg-[#25D366] text-white p-3.5 rounded-full shadow-lg hover:scale-110 hover:shadow-xl transition-all duration-300 animate-bounce"
+            // ✅ استخدمنا نفس منطق الـ AI (يطلع لفوق bottom-36 في صفحة المنتج)
+            className={`fixed left-4 md:left-8 z-40 bg-[#25D366] text-white p-3.5 rounded-full shadow-lg hover:scale-110 hover:shadow-xl transition-all duration-300 animate-bounce ${
+                isProductPage ? "bottom-36" : "bottom-20"
+            } md:bottom-8`}
             aria-label="تواصل معنا عبر واتساب"
             title="تحتاج مساعدة؟ كلمنا على واتساب"
         >

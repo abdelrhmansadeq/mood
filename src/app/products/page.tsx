@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import ProductCard from "@/components/product-card";
 import { useProducts } from "@/components/products-context";
 import { ProductGridSkeleton } from "@/components/skeleton";
@@ -12,12 +13,48 @@ type SortOption = "featured" | "price-asc" | "price-desc" | "name-asc";
 type PriceRange = "all" | "under-200" | "200-500" | "500-800" | "above-800";
 
 export default function ProductsPage() {
+    const router = useRouter();
     const { products, isLoading } = useProducts();
+
+    // الفلاتر الأصلية بتاعتك
     const [category, setCategory] = useState<CategoryFilter>("all");
     const [searchQuery, setSearchQuery] = useState("");
     const [sortBy, setSortBy] = useState<SortOption>("featured");
     const [priceRange, setPriceRange] = useState<PriceRange>("all");
 
+    // ✅ حالة إظهار قائمة الاقتراحات
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const searchRef = useRef<HTMLDivElement>(null);
+
+    // ✅ إخفاء الاقتراحات لو المستخدم داس في أي مكان برة مربع البحث
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+                setShowSuggestions(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    // ✅ استخراج أول 5 منتجات للاقتراحات
+    const suggestions = useMemo(() => {
+        if (searchQuery.trim().length < 2) return [];
+        const q = searchQuery.toLowerCase();
+        return products
+            .filter((p) =>
+                p.name.toLowerCase().includes(q) ||
+                p.nameEn.toLowerCase().includes(q)
+            )
+            .slice(0, 5);
+    }, [searchQuery, products]);
+
+    const handleSuggestionClick = (id: number) => {
+        setShowSuggestions(false);
+        router.push(`/products/${id}`);
+    };
+
+    // الفلترة الأصلية بتاعتك
     const filteredProducts = useMemo(() => {
         const filtered = products.filter((p) => {
             const matchCategory = category === "all" || p.category === category;
@@ -29,21 +66,12 @@ export default function ProductsPage() {
 
             let matchPrice = true;
             switch (priceRange) {
-                case "under-200":
-                    matchPrice = p.price < 200;
-                    break;
-                case "200-500":
-                    matchPrice = p.price >= 200 && p.price <= 500;
-                    break;
-                case "500-800":
-                    matchPrice = p.price > 500 && p.price <= 800;
-                    break;
-                case "above-800":
-                    matchPrice = p.price > 800;
-                    break;
+                case "under-200": matchPrice = p.price < 200; break;
+                case "200-500": matchPrice = p.price >= 200 && p.price <= 500; break;
+                case "500-800": matchPrice = p.price > 500 && p.price <= 800; break;
+                case "above-800": matchPrice = p.price > 800; break;
                 case "all":
-                default:
-                    matchPrice = true;
+                default: matchPrice = true;
             }
 
             return matchCategory && matchSearch && matchPrice;
@@ -51,15 +79,9 @@ export default function ProductsPage() {
 
         const sorted = [...filtered];
         switch (sortBy) {
-            case "price-asc":
-                sorted.sort((a, b) => a.price - b.price);
-                break;
-            case "price-desc":
-                sorted.sort((a, b) => b.price - a.price);
-                break;
-            case "name-asc":
-                sorted.sort((a, b) => a.name.localeCompare(b.name, "ar"));
-                break;
+            case "price-asc": sorted.sort((a, b) => a.price - b.price); break;
+            case "price-desc": sorted.sort((a, b) => b.price - a.price); break;
+            case "name-asc": sorted.sort((a, b) => a.name.localeCompare(b.name, "ar")); break;
             case "featured":
             default:
                 sorted.sort((a, b) => {
@@ -94,8 +116,7 @@ export default function ProductsPage() {
         { value: "above-800", label: "أكتر من 800 ج.م" },
     ];
 
-    const hasActiveFilters =
-        category !== "all" || searchQuery !== "" || priceRange !== "all";
+    const hasActiveFilters = category !== "all" || searchQuery !== "" || priceRange !== "all";
 
     return (
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
@@ -133,13 +154,18 @@ export default function ProductsPage() {
 
                 {/* Search + Sort + Price */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                    {/* Search */}
-                    <div className="relative sm:col-span-2 md:col-span-1">
+
+                    {/* ✅ مربع البحث مع الاقتراحات */}
+                    <div className="relative sm:col-span-2 md:col-span-1" ref={searchRef}>
                         <input
                             type="text"
                             placeholder="ابحث عن منتج..."
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                setShowSuggestions(true);
+                            }}
+                            onFocus={() => setShowSuggestions(true)}
                             className="w-full px-4 py-2.5 ps-10 rounded-full border border-charcoal/15 bg-white text-sm text-charcoal placeholder:text-muted focus:outline-none focus:border-gold transition-colors"
                         />
                         <svg
@@ -153,6 +179,37 @@ export default function ProductsPage() {
                             <circle cx="11" cy="11" r="8" />
                             <path d="m21 21-4.35-4.35" />
                         </svg>
+
+                        {/* ✅ القائمة المنسدلة اللي بتظهر أول 5 نتائج */}
+                        {showSuggestions && suggestions.length > 0 && (
+                            <div className="absolute top-full mt-2 w-full bg-white border border-charcoal/10 rounded-lg shadow-xl z-50 overflow-hidden animate-fade-in">
+                                {suggestions.map((product) => (
+                                    <button
+                                        key={product.id}
+                                        onClick={() => handleSuggestionClick(product.id)}
+                                        className="w-full flex items-center gap-3 p-2.5 hover:bg-cream transition-colors text-right border-b border-charcoal/5 last:border-0"
+                                    >
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                            src={product.image}
+                                            alt={product.name}
+                                            className="w-10 h-12 object-cover rounded"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-charcoal truncate">
+                                                {product.name}
+                                            </p>
+                                            <p className="text-xs text-muted truncate">
+                                                {product.nameEn}
+                                            </p>
+                                        </div>
+                                        <p className="text-sm font-bold text-gold">
+                                            {product.salePrice ?? product.price} ج.م
+                                        </p>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     {/* Sort */}

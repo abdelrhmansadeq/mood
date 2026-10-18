@@ -1,237 +1,448 @@
 "use client";
 
+import { useState, useEffect, useMemo } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import Link from "next/link";
-import ProductCard from "@/components/product-card";
+import { useRouter } from "next/navigation";
+import { useCart } from "@/components/cart-context";
+import { useAuth } from "@/components/auth-context";
 import { useProducts } from "@/components/products-context";
-import { ProductGridSkeleton } from "@/components/skeleton";
-import AiStylist from "@/components/ai-stylist";
+import { createOrder } from "@/lib/orders-api";
+import { fetchUserAddress } from "@/lib/addresses-api";
+import { z } from "zod";
 
-export default function Home() {
-    const { products, isLoading } = useProducts();
+type FormData = {
+    fullName: string;
+    phone: string;
+    city: string;
+    address: string;
+    notes: string;
+};
 
-    const featured = products.filter((p) => p.isFeatured);
+export default function CheckoutPage() {
+    const router = useRouter();
+    const { items, totalPrice, clearCart } = useCart();
+    const { user, isLoading: authLoading } = useAuth();
+    const { products, refreshProducts } = useProducts();
 
-    // Best Sellers: الأعلى مبيعاً
-    const bestSellers = [...products]
-        .filter((p) => (p.soldCount || 0) > 0)
-        .sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0))
-        .slice(0, 4);
+    const [formData, setFormData] = useState<FormData>({
+        fullName: "",
+        phone: "",
+        city: "",
+        address: "",
+        notes: "",
+    });
+    const [submitted, setSubmitted] = useState(false);
+    const [orderNumber, setOrderNumber] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState("");
 
-    // New Arrivals: أحدث 4 منتجات (بترتيب عكسي)
-    const newArrivals = [...products].reverse().slice(0, 4);
+    // ✅ التحقق من المخزون قبل الشحن
+    const outOfStockItems = useMemo(() => {
+        return items.filter((item) => {
+            const product = products.find((p) => p.id === item.productId);
+            if (!product) return true;
 
-    return (
-        <div>
-            {/* Hero Section */}
-            <section className="relative h-[65vh] min-h-[500px] flex items-center overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                    src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1920&q=80"
-                    alt="Mood Fashion"
-                    className="absolute inset-0 w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-charcoal/50" />
+            if (product.colors && product.colors.length > 0) {
+                const color = product.colors.find((c) => c.name === item.color);
+                if (!color) return true;
+                const stock = ((color.sizes || {}) as Record<string, number>)[item.size] || 0;
+                return stock < item.quantity;
+            } else {
+                const stock = ((product.sizes || {}) as Record<string, number>)[item.size] || 0;
+                return stock < item.quantity;
+            }
+        });
+    }, [items, products]);
 
-                <div className="relative max-w-7xl mx-auto px-6 lg:px-8 w-full">
-                    <div className="max-w-xl animate-fade-up">
-                        <p className="text-gold text-sm font-medium tracking-widest mb-4 uppercase">
-                            Mood — الأناقة تبدأ من هنا
-                        </p>
-                        <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-cream leading-tight mb-6">
-                            أناقتك، <br />
-                            بأسلوبك.
-                        </h1>
-                        <p className="text-cream/80 text-lg mb-8 leading-relaxed">
-                            اكتشف تشكيلة مميزة من الملابس العصرية بتصاميم تناسب ذوقك.
-                        </p>
-                        <div className="flex gap-4">
-                            <Link
-                                href="/products"
-                                className="inline-block bg-gold hover:bg-gold-dark text-charcoal font-semibold px-8 py-3 rounded-md transition-colors"
-                            >
-                                تسوق الآن
-                            </Link>
-                            <Link
-                                href="/about"
-                                className="inline-block border border-cream/40 hover:border-cream text-cream font-medium px-8 py-3 rounded-md transition-colors"
-                            >
-                                اعرف أكثر
-                            </Link>
-                        </div>
-                    </div>
+    useEffect(() => {
+        if (!user) return;
+
+        let isMounted = true;
+
+        const loadData = async () => {
+            const baseData = {
+                fullName: user.user_metadata?.full_name || "",
+                phone: user.user_metadata?.phone || "",
+            };
+
+            const savedAddress = await fetchUserAddress(user.id);
+            if (!isMounted) return;
+
+            if (savedAddress) {
+                setFormData((prev) => ({
+                    ...prev,
+                    fullName: savedAddress.fullName || baseData.fullName,
+                    phone: savedAddress.phone || baseData.phone,
+                    city: savedAddress.city,
+                    address: savedAddress.address,
+                }));
+            } else {
+                setFormData((prev) => ({
+                    ...prev,
+                    ...baseData,
+                }));
+            }
+        };
+
+        void loadData();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [user]);
+
+    useEffect(() => {
+        if (!authLoading && !user) {
+            router.push("/login");
+        }
+    }, [user, authLoading, router]);
+
+    const handleChange = (
+        e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    ) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const shipping = totalPrice >= 500 ? 0 : 50;
+    const finalTotal = totalPrice + shipping;
+
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setError("");
+
+        if (!user) {
+            setError("لازم تسجل دخول الأول");
+            return;
+        }
+
+        // ✅ التحقق من البيانات قبل إرسالها للسيرفر
+        const checkoutSchema = z.object({
+            fullName: z.string().min(3, "الاسم يجب أن يكون 3 أحرف على الأقل"),
+            phone: z.string().regex(/^01[0125][0-9]{8}$/, "رقم الموبايل غير صحيح (مثال: 01012345678)"),
+            city: z.string().min(2, "المدينة مطلوبة"),
+            address: z.string().min(5, "العنوان يجب أن يكون 5 أحرف على الأقل"),
+        });
+
+        const validation = checkoutSchema.safeParse(formData);
+
+        if (!validation.success) {
+            setError(validation.error.issues[0].message);
+            return;
+        }
+
+        if (outOfStockItems.length > 0) {
+            setError("فيه منتجات في سلتك خلصت من المخزون. يرجى تحديث السلة.");
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            const result = await createOrder({
+                fullName: formData.fullName,
+                phone: formData.phone,
+                city: formData.city,
+                address: formData.address,
+                notes: formData.notes,
+                items: items.map((item) => ({
+                    productId: item.productId,
+                    name: item.name,
+                    nameEn: item.nameEn,
+                    price: item.price,
+                    image: item.image,
+                    size: item.size,
+                    color: item.color,
+                    quantity: item.quantity,
+                })),
+            });
+
+            if (result.error) {
+                setError(result.error);
+                setIsSubmitting(false);
+                return;
+            }
+
+            if (result.order) {
+                setOrderNumber(result.order.orderNumber);
+                setSubmitted(true);
+                clearCart();
+                await refreshProducts();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+        } catch (e) {
+            console.error("Order error:", e);
+            setError("حصلت مشكلة في حفظ الطلب. حاول تاني.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    if (authLoading) {
+        return (
+            <div className="min-h-[calc(100vh-6rem)] flex items-center justify-center">
+                <p className="text-muted">جاري التحميل...</p>
+            </div>
+        );
+    }
+
+    if (!user) return null;
+
+    if (submitted) {
+        return (
+            <div className="max-w-2xl mx-auto px-6 py-20 text-center animate-fade-in">
+                <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-6 animate-fade-up">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                    </svg>
                 </div>
-            </section>
-
-            {/* Features */}
-            <section className="bg-white py-12 border-b border-charcoal/5">
-                <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {[
-                            { title: "شحن مجاني", desc: "للطلبات أكثر من 500 ج.م" },
-                            { title: "إرجاع مجاني", desc: "خلال 14 يوم من الاستلام" },
-                            { title: "دعم 24/7", desc: "فريقنا جاهز لمساعدتك" },
-                        ].map((f, idx) => (
-                            <div
-                                key={f.title}
-                                className="text-center animate-fade-up opacity-0"
-                                style={{
-                                    animationDelay: `${idx * 100}ms`,
-                                    animationFillMode: "forwards",
-                                }}
-                            >
-                                <h3 className="text-base font-semibold text-charcoal mb-1">
-                                    {f.title}
-                                </h3>
-                                <p className="text-sm text-muted">{f.desc}</p>
-                            </div>
-                        ))}
-                    </div>
+                <h1 className="text-3xl font-bold text-charcoal mb-3 animate-fade-up">
+                    تم استلام طلبك!
+                </h1>
+                <p className="text-muted mb-6 animate-fade-up">
+                    شكراً لك. هنتواصل معاك قريباً لتأكيد الطلب.
+                </p>
+                <div className="bg-white border border-charcoal/10 rounded-lg p-6 mb-8 inline-block animate-fade-up">
+                    <p className="text-xs text-muted mb-1">رقم الطلب</p>
+                    <p className="text-2xl font-bold text-gold">{orderNumber}</p>
                 </div>
-            </section>
-
-            {/* Best Sellers */}
-            {!isLoading && bestSellers.length > 0 && (
-                <section className="py-16 md:py-20 border-b border-charcoal/5">
-                    <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                        <div className="flex items-end justify-between mb-8 md:mb-10">
-                            <div className="animate-fade-up">
-                                <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2">
-                                    Best Sellers
-                                </p>
-                                <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-charcoal">
-                                    الأكثر مبيعاً
-                                </h2>
-                            </div>
-                            <Link
-                                href="/products"
-                                className="hidden md:inline-block text-sm font-medium text-charcoal hover:text-gold transition-colors border-b border-charcoal/20 hover:border-gold pb-1"
-                            >
-                                شوف كل المنتجات
-                            </Link>
-                        </div>
-
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                            {bestSellers.map((product, idx) => (
-                                <div
-                                    key={product.id}
-                                    className="animate-fade-up opacity-0"
-                                    style={{
-                                        animationDelay: `${idx * 80}ms`,
-                                        animationFillMode: "forwards",
-                                    }}
-                                >
-                                    <ProductCard product={product} />
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </section>
-            )}
-
-            {/* Featured Products */}
-            <section className="py-16 md:py-20">
-                <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                    <div className="flex items-end justify-between mb-8 md:mb-10">
-                        <div className="animate-fade-up">
-                            <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2">
-                                Featured
-                            </p>
-                            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-charcoal">
-                                منتجات مميزة
-                            </h2>
-                        </div>
-                        <Link
-                            href="/products"
-                            className="hidden md:inline-block text-sm font-medium text-charcoal hover:text-gold transition-colors border-b border-charcoal/20 hover:border-gold pb-1"
-                        >
-                            شوف كل المنتجات
-                        </Link>
-                    </div>
-
-                    {isLoading ? (
-                        <ProductGridSkeleton count={4} />
-                    ) : featured.length > 0 ? (
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                            {featured.map((product, idx) => (
-                                <div
-                                    key={product.id}
-                                    className="animate-fade-up opacity-0"
-                                    style={{
-                                        animationDelay: `${idx * 80}ms`,
-                                        animationFillMode: "forwards",
-                                    }}
-                                >
-                                    <ProductCard product={product} />
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-center text-muted py-12">
-                            مفيش منتجات مميزة حالياً.
-                        </p>
-                    )}
-                </div>
-            </section>
-
-            {/* New Arrivals */}
-            {!isLoading && newArrivals.length > 0 && (
-                <section className="py-16 md:py-20 bg-white border-t border-charcoal/5">
-                    <div className="max-w-7xl mx-auto px-6 lg:px-8">
-                        <div className="flex items-end justify-between mb-8 md:mb-10">
-                            <div className="animate-fade-up">
-                                <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2">
-                                    New Arrivals
-                                </p>
-                                <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-charcoal">
-                                    وصل حديثاً
-                                </h2>
-                            </div>
-                            <Link
-                                href="/products"
-                                className="hidden md:inline-block text-sm font-medium text-charcoal hover:text-gold transition-colors border-b border-charcoal/20 hover:border-gold pb-1"
-                            >
-                                شوف كل المنتجات
-                            </Link>
-                        </div>
-
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                            {newArrivals.map((product, idx) => (
-                                <div
-                                    key={product.id}
-                                    className="animate-fade-up opacity-0"
-                                    style={{
-                                        animationDelay: `${idx * 80}ms`,
-                                        animationFillMode: "forwards",
-                                    }}
-                                >
-                                    <ProductCard product={product} />
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </section>
-            )}
-
-            {/* 🌟 AI Stylist Section */}
-            <AiStylist />
-
-            {/* Final CTA */}
-            <section className="py-16 md:py-20 bg-cream">
-                <div className="max-w-3xl mx-auto px-6 text-center">
-                    <h2 className="text-2xl md:text-3xl font-bold text-charcoal mb-4 animate-fade-up">
-                        جاهز تكتشف تشكيلتنا؟
-                    </h2>
-                    <p className="text-muted mb-8 animate-fade-up">
-                        آلاف القطع المميزة بانتظارك
-                    </p>
+                <div className="flex justify-center gap-4 flex-wrap animate-fade-up">
+                    <Link
+                        href="/account/orders"
+                        className="inline-block bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold px-6 py-3 rounded-md transition-colors"
+                    >
+                        طلباتي
+                    </Link>
                     <Link
                         href="/products"
-                        className="inline-block bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold px-8 py-3 rounded-md transition-colors animate-fade-up"
+                        className="inline-block border border-charcoal/20 hover:border-charcoal text-charcoal font-medium px-6 py-3 rounded-md transition-colors"
                     >
-                        تسوق الآن
+                        متابعة التسوق
                     </Link>
                 </div>
-            </section>
+            </div>
+        );
+    }
+
+    if (items.length === 0) {
+        return (
+            <div className="max-w-2xl mx-auto px-6 py-20 text-center animate-fade-in">
+                <h1 className="text-2xl font-bold text-charcoal mb-3">
+                    السلة فاضية
+                </h1>
+                <p className="text-muted mb-8">
+                    مفيش منتجات في السلة عشان تكمل الطلب.
+                </p>
+                <Link
+                    href="/products"
+                    className="inline-block bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold px-6 py-3 rounded-md transition-colors"
+                >
+                    ابدأ التسوق
+                </Link>
+            </div>
+        );
+    }
+
+    return (
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12 animate-fade-in pb-32 md:pb-12">
+            <div className="mb-10 animate-fade-up">
+                <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2">
+                    Checkout
+                </p>
+                <h1 className="text-3xl md:text-4xl font-bold text-charcoal">
+                    إتمام الشراء
+                </h1>
+            </div>
+
+            <form onSubmit={handleSubmit}>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                    <div className="lg:col-span-2 space-y-5">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-lg font-semibold text-charcoal">
+                                بيانات الشحن
+                            </h2>
+                            <Link
+                                href="/account"
+                                className="text-sm text-gold hover:underline font-medium"
+                            >
+                                تعديل العنوان المحفوظ
+                            </Link>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div>
+                                <label className="block text-sm font-medium text-charcoal mb-2">
+                                    الاسم الكامل *
+                                </label>
+                                <input
+                                    type="text"
+                                    name="fullName"
+                                    required
+                                    value={formData.fullName}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold transition-colors"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-charcoal mb-2">
+                                    رقم التليفون *
+                                </label>
+                                <input
+                                    type="tel"
+                                    name="phone"
+                                    required
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold transition-colors"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-charcoal mb-2">
+                                المدينة *
+                            </label>
+                            <input
+                                type="text"
+                                name="city"
+                                required
+                                value={formData.city}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold transition-colors"
+                                placeholder="القاهرة"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-charcoal mb-2">
+                                العنوان بالتفصيل *
+                            </label>
+                            <textarea
+                                name="address"
+                                required
+                                value={formData.address}
+                                onChange={handleChange}
+                                rows={3}
+                                className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold transition-colors resize-none"
+                                placeholder="الشارع، رقم العمارة، الدور، الشقة"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-charcoal mb-2">
+                                ملاحظات إضافية (اختياري)
+                            </label>
+                            <textarea
+                                name="notes"
+                                value={formData.notes}
+                                onChange={handleChange}
+                                rows={2}
+                                className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold transition-colors resize-none"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="lg:col-span-1">
+                        <div className="bg-white rounded-lg border border-charcoal/10 p-6 sticky top-24 animate-fade-up">
+                            <h2 className="text-lg font-semibold text-charcoal mb-5">
+                                ملخص الطلب
+                            </h2>
+
+                            <div className="space-y-4 mb-5 max-h-72 overflow-y-auto">
+                                {items.map((item) => {
+                                    const isOutOfStock = outOfStockItems.some(i => i.productId === item.productId && i.size === item.size && i.color === item.color);
+                                    return (
+                                        <div
+                                            key={`${item.productId}-${item.size}-${item.color}`}
+                                            className="flex gap-3"
+                                        >
+                                            <div className="relative w-14 h-16 rounded-md overflow-hidden bg-cream flex-shrink-0 border border-charcoal/5">
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img
+                                                    src={item.image}
+                                                    alt={item.name}
+                                                    className="absolute inset-0 w-full h-full object-cover"
+                                                />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className={`text-sm font-medium truncate ${isOutOfStock ? 'text-error line-through' : 'text-charcoal'}`}>
+                                                    {item.name}
+                                                </p>
+                                                <p className="text-xs text-muted">
+                                                    {item.size} × {item.quantity}
+                                                </p>
+                                                {isOutOfStock ? (
+                                                    <p className="text-xs text-error font-medium mt-1">خلص من المخزون</p>
+                                                ) : (
+                                                    <p className="text-sm font-semibold text-charcoal">
+                                                        {item.price * item.quantity} ج.م
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="border-t border-charcoal/10 pt-5 space-y-2 text-sm">
+                                <div className="flex justify-between text-muted">
+                                    <span>المجموع الفرعي</span>
+                                    <span>{totalPrice} ج.م</span>
+                                </div>
+                                <div className="flex justify-between text-muted">
+                                    <span>الشحن</span>
+                                    <span>{shipping === 0 ? "مجاني" : `${shipping} ج.م`}</span>
+                                </div>
+                                <div className="flex justify-between text-base font-bold text-charcoal pt-3 border-t border-charcoal/10">
+                                    <span>الإجمالي</span>
+                                    <span>{finalTotal} ج.م</span>
+                                </div>
+                            </div>
+
+                            {error && (
+                                <div className="mt-4 bg-error/10 text-error border border-error/30 rounded-md p-3 text-sm font-medium">
+                                    {error}
+                                </div>
+                            )}
+
+                            {outOfStockItems.length > 0 && (
+                                <div className="mt-4 bg-warning/10 text-warning-dark border border-warning/30 rounded-md p-3 text-sm font-medium">
+                                    بعض المنتجات في سلتك خلصت. برجاء حذفها من السلة أو تحديث الكمية للمتابعة.
+                                </div>
+                            )}
+
+                            {/* Desktop Submit Button */}
+                            <div className="hidden md:block mt-6">
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting || outOfStockItems.length > 0}
+                                    className="w-full bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors disabled:opacity-50"
+                                >
+                                    {isSubmitting ? "جاري إرسال الطلب..." : "تأكيد الطلب"}
+                                </button>
+                                <p className="text-xs text-muted text-center mt-3">
+                                    الدفع عند الاستلام
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Mobile Sticky Submit Button */}
+                <div className="md:hidden fixed bottom-16 left-0 right-0 p-4 bg-cream/95 backdrop-blur-md border-t border-charcoal/10 z-30">
+                    <button
+                        type="submit"
+                        disabled={isSubmitting || outOfStockItems.length > 0}
+                        className="w-full bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors disabled:opacity-50 shadow-lg"
+                    >
+                        {isSubmitting ? "جاري إرسال الطلب..." : "تأكيد الطلب"}
+                    </button>
+                    <p className="text-xs text-muted text-center mt-2">
+                        الدفع عند الاستلام
+                    </p>
+                </div>
+            </form>
         </div>
     );
 }

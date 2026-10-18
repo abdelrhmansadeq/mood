@@ -125,7 +125,7 @@ export default function AccountPage() {
     // بيانات المستخدم
     const fullName = user.user_metadata?.full_name || "عميل Mood";
     const phone = user.user_metadata?.phone || "";
-    const avatarUrl = user.user_metadata?.avatar_url; // صورة جوجل
+    const avatarUrl = user.user_metadata?.avatar_url;
     const isGoogleUser = user.app_metadata?.providers?.includes("google");
     const hasAddress = address !== null;
 
@@ -324,36 +324,65 @@ export default function AccountPage() {
                 )}
             </div>
 
-            {/* Quick Links */}
+            {/* Quick Links - تم تعديل التقسيمة هنا */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <Link
                     href="/account/orders"
-                    className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up opacity-0"
+                    className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up opacity-0 flex flex-col justify-between"
                     style={{ animationDelay: "200ms", animationFillMode: "forwards" }}
                 >
-                    <h3 className="text-base font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-                            <line x1="3" y1="6" x2="21" y2="6"></line>
-                            <path d="M16 10a4 4 0 0 1-8 0"></path>
-                        </svg>
-                        طلباتي
-                    </h3>
-                    <p className="text-sm text-muted">شوف كل طلباتك السابقة</p>
+                    <div>
+                        <h3 className="text-base font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                                <line x1="3" y1="6" x2="21" y2="6"></line>
+                                <path d="M16 10a4 4 0 0 1-8 0"></path>
+                            </svg>
+                            طلباتي
+                        </h3>
+                        <p className="text-sm text-muted">شوف كل طلباتك السابقة</p>
+                    </div>
                 </Link>
 
                 <Link
                     href="/wishlist"
-                    className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up opacity-0"
+                    className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up opacity-0 flex flex-col justify-between"
                     style={{ animationDelay: "300ms", animationFillMode: "forwards" }}
                 >
-                    <h3 className="text-base font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    <div>
+                        <h3 className="text-base font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                            المفضلة
+                        </h3>
+                        <p className="text-sm text-muted">المنتجات اللي حفظتها</p>
+                    </div>
+                </Link>
+
+                {/* كارت تصفح المنتجات بعرض كامل */}
+                <Link
+                    href="/products"
+                    className="md:col-span-2 group bg-charcoal text-cream hover:bg-charcoal/90 rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up opacity-0 flex items-center justify-between"
+                    style={{ animationDelay: "400ms", animationFillMode: "forwards" }}
+                >
+                    <div>
+                        <h3 className="text-base font-semibold mb-1 group-hover:text-gold transition-colors flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="9" cy="21" r="1"></circle>
+                                <circle cx="20" cy="21" r="1"></circle>
+                                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                            </svg>
+                            تصفح المنتجات
+                        </h3>
+                        <p className="text-sm text-cream/70">اكتشف أحدث الإضافات في المتجر</p>
+                    </div>
+                    <div className="bg-gold/20 text-gold p-2 rounded-full group-hover:bg-gold group-hover:text-charcoal transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M5 12h14"></path>
+                            <path d="m12 5 7 7-7 7"></path>
                         </svg>
-                        المفضلة
-                    </h3>
-                    <p className="text-sm text-muted">المنتجات اللي حفظتها</p>
+                    </div>
                 </Link>
             </div>
 
@@ -364,7 +393,7 @@ export default function AccountPage() {
                     router.push("/");
                 }}
                 className="w-full md:w-auto px-6 py-3 border border-error/30 text-error hover:bg-error/10 font-medium rounded-md transition-colors animate-fade-up opacity-0"
-                style={{ animationDelay: "400ms", animationFillMode: "forwards" }}
+                style={{ animationDelay: "500ms", animationFillMode: "forwards" }}
             >
                 تسجيل خروج
             </button>

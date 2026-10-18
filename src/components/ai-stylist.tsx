@@ -36,7 +36,23 @@ export default function AiStylist() {
 
             if (!res.ok) throw new Error(data.error || "حصلت مشكلة");
 
-            setOutfits(data.data.outfits || []);
+            // ✅ إصلاح ثغرة الهلوست: التأكد إن المنتجات اللي الـ AI رشحها موجودة فعلاً ومتوفرة
+            const rawOutfits = data.data.outfits || [];
+
+            const validOutfits = rawOutfits.map((outfit: Outfit) => {
+                const validItems = outfit.items.filter((item: AiItem) => {
+                    const product = products.find((p) => p.id === item.id);
+                    // نعرض المنتج بس لو موجود في الداتابيز ومخزونه أكبر من صفر
+                    return product && product.stock > 0;
+                });
+                return { ...outfit, items: validItems };
+            }).filter((outfit: Outfit) => outfit.items.length > 0); // نشيل أي لووك كامل فاضي
+
+            if (validOutfits.length === 0) {
+                throw new Error("معلش، مفيش منتجات متوفرة تكفي لتكوين لووك حالياً. جرب تختار مناسبة تانية.");
+            }
+
+            setOutfits(validOutfits);
         } catch (err: unknown) {
             if (err instanceof Error) setError(err.message);
             else setError("حصلت مشكلة في الاتصال");
@@ -58,7 +74,6 @@ export default function AiStylist() {
             color = firstColor.name;
             if (firstColor.image) image = firstColor.image;
 
-            // ✅ الحل هنا: عملنا Cast للـ sizes عشان TypeScript ميزعلش
             const sizesObj = (firstColor.sizes || {}) as Record<string, number>;
             const availableSizes = Object.keys(sizesObj).filter(
                 (s) => (sizesObj[s] || 0) > 0
@@ -66,7 +81,6 @@ export default function AiStylist() {
             if (availableSizes.length > 0) size = availableSizes[0];
 
         } else if (fullProduct.sizes) {
-            // ✅ الحل هنا كمان
             const sizesObj = fullProduct.sizes as Record<string, number>;
             const availableSizes = Object.keys(sizesObj).filter(
                 (s) => (sizesObj[s] || 0) > 0
@@ -153,7 +167,7 @@ export default function AiStylist() {
                             "اقترح لي لووكات ✨"
                         )}
                     </button>
-                    {error && <p className="text-error text-sm text-center mt-4">{error}</p>}
+                    {error && <p className="text-error text-sm text-center mt-4 font-medium">{error}</p>}
                 </form>
 
                 {/* Results */}

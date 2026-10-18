@@ -121,9 +121,23 @@ export async function POST(request: Request) {
             deductedItems.push({ productId: item.productId, color: item.color, size: item.size, quantity: item.quantity, hasColors });
         }
 
-        // إنشاء الطلب
-        const orderNumber = "MOOD-" + Math.floor(100000 + Math.random() * 900000);
+        // ✅ 3. توليد رقم طلب فريد (منع التكرار)
+        let orderNumber = "";
+        let isUnique = false;
+        let retries = 0;
 
+        while (!isUnique && retries < 5) {
+            orderNumber = "MOOD-" + Math.floor(100000 + Math.random() * 900000);
+            const { data: existing } = await supabaseAdmin.from("orders").select("id").eq("order_number", orderNumber).maybeSingle();
+            if (!existing) isUnique = true;
+            retries++;
+        }
+
+        if (!isUnique) {
+            throw new Error("فشل توليد رقم طلب فريد، جرب تاني.");
+        }
+
+        // إنشاء الطلب
         const { data: order, error: orderError } = await supabaseAdmin.from("orders").insert({
             user_id: userId, user_email: userEmail, order_number: orderNumber,
             full_name: fullName, phone, city, address, notes: notes || null,
@@ -144,14 +158,18 @@ export async function POST(request: Request) {
             await supabaseAdmin.rpc("increment_sold_count", { p_product_id: item.productId, p_quantity: item.quantity });
         }
 
-        // إرسال الإيميلات
-        try {
-            const emailData = { orderNumber, customerName: fullName, phone, city, address, subtotal, shipping, total, items: enrichedItems.map((i) => ({ name: i.name, size: i.size, color: i.color, quantity: i.quantity, price: i.price })) };
-            if (userEmail) await sendEmail({ to: userEmail, toName: fullName, subject: `تأكيد طلبك ${orderNumber} - Mood`, htmlContent: buildCustomerOrderEmail(emailData) });
-            const adminEmail = process.env.BREVO_ADMIN_EMAIL;
-            if (adminEmail) await sendEmail({ to: adminEmail, toName: "Mood Admin", subject: `🔔 طلب جديد: ${orderNumber}`, htmlContent: buildAdminOrderEmail(emailData, userEmail) });
-        } catch (emailError) {
-            console.error("Email sending failed:", emailError);
+        // ✅ 4. إرسال الإيميلات (بدون تعطيل الرد)
+        const emailData = { orderNumber, customerName: fullName, phone, city, address, subtotal, shipping, total, items: enrichedItems.map((i) => ({ name: i.name, size: i.size, color: i.color, quantity: i.quantity, price: i.price })) };
+
+        if (userEmail) {
+            sendEmail({ to: userEmail, toName: fullName, subject: `تأكيد طلبك ${orderNumber} - Mood`, htmlContent: buildCustomerOrderEmail(emailData) })
+                .catch((err) => console.error("Customer email failed:", err));
+        }
+
+        const adminEmail = process.env.BREVO_ADMIN_EMAIL;
+        if (adminEmail) {
+            sendEmail({ to: adminEmail, toName: "Mood Admin", subject: `🔔 طلب جديد: ${orderNumber}`, htmlContent: buildAdminOrderEmail(emailData, userEmail) })
+                .catch((err) => console.error("Admin email failed:", err));
         }
 
         return NextResponse.json({ order });

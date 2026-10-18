@@ -1,23 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { FormEvent } from "react";
 import { useAuth } from "@/components/auth-context";
 import GoogleLoginButton from "@/components/google-login-button";
 
-export default function LoginPage() {
-    const router = useRouter();
-    const { user, signIn } = useAuth();
+function LoginForm() {
+    const searchParams = useSearchParams();
+    const nextUrl = searchParams.get("next") || "/account";
+    const { signIn } = useAuth();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-
-    useEffect(() => {
-        if (user) router.push("/account");
-    }, [user, router]);
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -30,7 +27,8 @@ export default function LoginPage() {
             setError("الإيميل أو الباسورد غلط");
             setIsLoading(false);
         } else {
-            router.push("/account");
+            // ✅ الحل النهائي للوب: ريفريش كامل للمتصفح عشان الكوكيز تتبعت للسيرفر
+            window.location.href = nextUrl;
         }
     };
 
@@ -112,5 +110,13 @@ export default function LoginPage() {
                 </p>
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-muted">جاري التحميل...</div>}>
+            <LoginForm />
+        </Suspense>
     );
 }

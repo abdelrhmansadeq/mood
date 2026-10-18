@@ -13,6 +13,9 @@ export default function AIAssistant() {
     const pathname = usePathname();
     const isProductPage = /^\/products\/\d+/.test(pathname);
 
+    // نخفي الزرار في لوحة التحكم
+    if (pathname.startsWith("/admin")) return null;
+
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
         {
@@ -73,9 +76,9 @@ export default function AIAssistant() {
             <button
                 onClick={() => setIsOpen(true)}
                 aria-label="افتح المساعد الذكي"
-                className={`fixed right-4 md:right-6 z-30 w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-gold to-gold-dark hover:scale-110 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all ${
+                className={`fixed right-4 md:right-8 z-30 w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-gold to-gold-dark hover:scale-110 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all ${
                     isProductPage ? "bottom-36" : "bottom-20"
-                } md:bottom-6 ${
+                } md:bottom-8 ${
                     isOpen ? "scale-0 opacity-0" : "scale-100 opacity-100"
                 }`}
             >
