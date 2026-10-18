@@ -13,6 +13,8 @@ export default function AIAssistant() {
     const pathname = usePathname();
     const isProductPage = /^\/products\/\d+/.test(pathname);
 
+    if (pathname.startsWith("/admin")) return null;
+
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
         {
@@ -38,10 +40,13 @@ export default function AIAssistant() {
         setIsLoading(true);
 
         try {
+            // ✅ بنبعت آخر 4 رسايل كـ History عشان البوت يفتكر سياق الكلام
+            const history = messages.slice(-4);
+
             const res = await fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: userMessage }),
+                body: JSON.stringify({ message: userMessage, history }),
             });
 
             const data = await res.json();
@@ -69,27 +74,14 @@ export default function AIAssistant() {
 
     return (
         <>
-            {/* Floating Button */}
             <button
                 onClick={() => setIsOpen(true)}
                 aria-label="افتح المساعد الذكي"
                 className={`fixed right-4 md:right-8 z-30 w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-gold to-gold-dark hover:scale-110 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all ${
                     isProductPage ? "bottom-36" : "bottom-20"
-                } md:bottom-8 ${
-                    isOpen ? "scale-0 opacity-0" : "scale-100 opacity-100"
-                }`}
+                } md:bottom-8 ${isOpen ? "scale-0 opacity-0" : "scale-100 opacity-100"}`}
             >
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="22"
-                    height="22"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="white"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                >
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 2v4" />
                     <path d="m6.4 10.4-3.2-3.2" />
                     <path d="M20.8 7.2l-3.2 3.2" />
@@ -100,17 +92,10 @@ export default function AIAssistant() {
                 </svg>
             </button>
 
-            {/* Chat Window */}
             {isOpen && (
                 <>
-                    {/* Overlay for mobile */}
-                    <div
-                        onClick={() => setIsOpen(false)}
-                        className="fixed inset-0 bg-charcoal/30 z-[80] md:hidden"
-                    />
-
+                    <div onClick={() => setIsOpen(false)} className="fixed inset-0 bg-charcoal/30 z-[80] md:hidden" />
                     <div className="fixed bottom-6 right-4 left-4 md:right-6 md:left-auto z-[90] md:w-96 md:max-w-md h-[70vh] md:h-[600px] max-h-[calc(100vh-6rem)] bg-cream rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-charcoal/10">
-                        {/* Header */}
                         <div className="bg-gradient-to-r from-charcoal to-charcoal/90 text-cream p-4 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center">
@@ -121,39 +106,19 @@ export default function AIAssistant() {
                                     <p className="text-xs text-cream/60">متصل الآن</p>
                                 </div>
                             </div>
-                            <button
-                                onClick={() => setIsOpen(false)}
-                                aria-label="اقفل"
-                                className="p-1.5 text-cream/70 hover:text-cream transition-colors"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                                    <line x1="18" y1="6" x2="6" y2="18" />
-                                    <line x1="6" y1="6" x2="18" y2="18" />
-                                </svg>
+                            <button onClick={() => setIsOpen(false)} aria-label="اقفل" className="p-1.5 text-cream/70 hover:text-cream transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                             </button>
                         </div>
 
-                        {/* Messages */}
                         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-cream">
                             {messages.map((msg, idx) => (
-                                <div
-                                    key={idx}
-                                    className={`flex ${
-                                        msg.role === "user" ? "justify-end" : "justify-start"
-                                    }`}
-                                >
-                                    <div
-                                        className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                                            msg.role === "user"
-                                                ? "bg-charcoal text-cream rounded-br-sm"
-                                                : "bg-white border border-charcoal/10 text-charcoal rounded-bl-sm"
-                                        }`}
-                                    >
+                                <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                                    <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${msg.role === "user" ? "bg-charcoal text-cream rounded-br-sm" : "bg-white border border-charcoal/10 text-charcoal rounded-bl-sm"}`}>
                                         {msg.content}
                                     </div>
                                 </div>
                             ))}
-
                             {isLoading && (
                                 <div className="flex justify-start">
                                     <div className="bg-white border border-charcoal/10 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5">
@@ -163,31 +128,14 @@ export default function AIAssistant() {
                                     </div>
                                 </div>
                             )}
-
                             <div ref={messagesEndRef} />
                         </div>
 
-                        {/* Input */}
                         <form onSubmit={handleSubmit} className="p-3 border-t border-charcoal/10 bg-white">
                             <div className="flex items-center gap-2">
-                                <input
-                                    type="text"
-                                    value={input}
-                                    onChange={(e) => setInput(e.target.value)}
-                                    placeholder="اسألني عن أي منتج..."
-                                    disabled={isLoading}
-                                    className="flex-1 px-4 py-2.5 rounded-full bg-cream border border-charcoal/10 text-sm text-charcoal placeholder:text-muted focus:outline-none focus:border-gold transition-colors disabled:opacity-50"
-                                />
-                                <button
-                                    type="submit"
-                                    disabled={isLoading || !input.trim()}
-                                    aria-label="إرسال"
-                                    className="w-10 h-10 rounded-full bg-charcoal hover:bg-gold text-cream hover:text-charcoal disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors flex-shrink-0"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="m22 2-7 20-4-9-9-4Z" />
-                                        <path d="M22 2 11 13" />
-                                    </svg>
+                                <input type="text" value={input} onChange={(e) => setInput(e.target.value)} placeholder="اسألني عن أي منتج..." disabled={isLoading} className="flex-1 px-4 py-2.5 rounded-full bg-cream border border-charcoal/10 text-sm text-charcoal placeholder:text-muted focus:outline-none focus:border-gold transition-colors disabled:opacity-50" />
+                                <button type="submit" disabled={isLoading || !input.trim()} aria-label="إرسال" className="w-10 h-10 rounded-full bg-charcoal hover:bg-gold text-cream hover:text-charcoal disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors flex-shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
                                 </button>
                             </div>
                         </form>

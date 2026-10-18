@@ -46,7 +46,6 @@ export async function submitContactMessage(params: {
     honeypot?: string;
 }): Promise<{ error?: string; requiresVerification?: boolean }> {
     try {
-        // ناخد الـ session (لو موجود)
         const {
             data: { session },
         } = await supabase.auth.getSession();
@@ -103,4 +102,37 @@ export async function fetchAllMessages(): Promise<ContactMessage[]> {
     }
 
     return (data.messages as SupabaseMessage[]).map(toMessage);
+}
+
+// ✅ إضافة دالة تحويل الرسالة لمقروءة (جديد)
+export async function markMessageAsRead(messageId: number): Promise<{ error?: string }> {
+    try {
+        const {
+            data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session) {
+            return { error: "لازم تسجل دخول الأول" };
+        }
+
+        const res = await fetch("/api/contact", {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ messageId }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            return { error: data.error || "حصلت مشكلة" };
+        }
+
+        return {};
+    } catch (e) {
+        console.error("markMessageAsRead error:", e);
+        return { error: "حصلت مشكلة في الاتصال" };
+    }
 }

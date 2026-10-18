@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image"; // ✅ ضفنا استيراد Image
 import type { Product } from "@/data/products";
 import { useWishlist } from "./wishlist-context";
 
@@ -20,9 +21,7 @@ export default function ProductCard({ product }: Props) {
 
     const isOutOfStock = product.stock === 0;
 
-    // سعر البيع الفعلي
-    const hasSale =
-        product.salePrice != null && product.salePrice < product.price;
+    const hasSale = product.salePrice != null && product.salePrice < product.price;
     const finalPrice = hasSale ? product.salePrice! : product.price;
     const discountPercent = hasSale
         ? Math.round(((product.price - product.salePrice!) / product.price) * 100)
@@ -35,11 +34,14 @@ export default function ProductCard({ product }: Props) {
         >
             {/* Image */}
             <div className="relative aspect-[3/4] overflow-hidden bg-cream">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+
+                {/* ✅ استبدلنا img بـ Image */}
+                <Image
                     src={product.image}
                     alt={product.name}
-                    className={`absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${
+                    fill
+                    sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                    className={`object-cover group-hover:scale-105 transition-transform duration-500 ${
                         isOutOfStock ? "opacity-50" : ""
                     }`}
                 />
@@ -48,7 +50,7 @@ export default function ProductCard({ product }: Props) {
                 <button
                     onClick={handleToggle}
                     aria-label={isFavorite ? "إزالة من المفضلة" : "أضف للمفضلة"}
-                    className={`absolute top-3 left-3 w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                    className={`absolute top-3 left-3 w-9 h-9 rounded-full flex items-center justify-center transition-all z-10 ${
                         isFavorite
                             ? "bg-error text-white"
                             : "bg-white/90 backdrop-blur-sm text-charcoal hover:bg-white"
@@ -71,14 +73,14 @@ export default function ProductCard({ product }: Props) {
 
                 {/* Sale Badge */}
                 {hasSale && !isOutOfStock && (
-                    <div className="absolute top-3 right-3 bg-error text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                    <div className="absolute top-3 right-3 bg-error text-white text-xs font-bold px-2.5 py-1 rounded-full z-10">
                         خصم {discountPercent}%
                     </div>
                 )}
 
                 {/* Out of Stock Badge */}
                 {isOutOfStock && (
-                    <div className="absolute top-3 right-3 bg-charcoal/90 text-cream text-xs font-medium px-3 py-1.5 rounded-full">
+                    <div className="absolute top-3 right-3 bg-charcoal/90 text-cream text-xs font-medium px-3 py-1.5 rounded-full z-10">
                         نفد المخزون
                     </div>
                 )}

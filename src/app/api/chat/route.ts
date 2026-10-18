@@ -4,9 +4,8 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
-// 🛡️ حماية بسيطة من السبام (Rate Limiting)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 15; // 15 رسالة في الدقيقة
+const RATE_LIMIT = 15;
 const ONE_MINUTE = 60 * 1000;
 
 function checkRateLimit(key: string): boolean {
@@ -23,16 +22,13 @@ function checkRateLimit(key: string): boolean {
 
 export async function POST(request: Request) {
     try {
-        // 🛡️ تطبيق الـ Rate Limit
         const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
         if (!checkRateLimit(ip)) {
-            return NextResponse.json(
-                { error: "بعت رسائل كتير، استنى شوية وجرب تاني." },
-                { status: 429 }
-            );
+            return NextResponse.json({ error: "بعت رسائل كتير، استنى شوية." }, { status: 429 });
         }
 
-        const { message } = await request.json();
+        // ✅ استقبال الرسالة الحالية والتاريخ (History)
+        const { message, history } = await request.json();
 
         if (!message || typeof message !== "string") {
             return NextResponse.json({ error: "الرسالة مطلوبة" }, { status: 400 });
@@ -42,11 +38,10 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "مفتاح API غير مفعّل" }, { status: 500 });
         }
 
-        // ✅ بنجيب 40 منتج بس عشان السرعة ونوفر توكنز
         const { data: products, error: productsError } = await supabaseAdmin
             .from("products")
             .select("id, name, name_en, price, category, description, stock, colors")
-            .gt("stock", 0) // نجيب المتوفر بس
+            .gt("stock", 0)
             .limit(40);
 
         if (productsError || !products) {
@@ -55,44 +50,48 @@ export async function POST(request: Request) {
 
         const productList = products
             .map((p) => {
-                const colorsInfo =
-                    p.colors && Array.isArray(p.colors) && p.colors.length > 0
-                        ? ` | الألوان: ${p.colors.map((c: { name: string }) => c.name).join(", ")}`
-                        : "";
-                return `- ${p.name} (${p.name_en}): ${p.price} ج.م | التصنيف: ${p.category}${colorsInfo} | الوصف: ${p.description}`;
+                const colorsInfo = p.colors && Array.isArray(p.colors) && p.colors.length > 0
+                    ? ` | الألوان: ${p.colors.map((c: { name: string }) => c.name).join(", ")}`
+                    : "";
+                return `- ${p.name} (${p.name_en}): ${p.price} ج.م | التصنيف: ${p.category}${colorsInfo}`;
             })
             .join("\n");
 
-        const prompt = `أنت مساعد تسوق ذكي في متجر Mood للملابس العصرية. اسمك "Mood Assistant".
-مهمتك: تساعد الزوار في اختيار المنتجات المناسبة لاحتياجاتهم.
+        const systemPrompt = `أنت مساعد تسوق ذكي في متجر Mood للملابس. اسمك "Mood Assistant".
+مهمتك: مساعدة الزوار في اختيار المنتجات.
+قواعد: رد بالعربي، كن مختصر (2-3 جمل)، اذكر الاسم والسعر.
+المنتجات المتاحة:
+${productList}`;
 
-قواعد مهمة:
-1. ردّ بالعربي دايماً (إلا لو الزائر سأل بالإنجليزي).
-2. كن ودود ومختصر (2-4 جمل).
-3. لما تقترح منتجات، اذكر الاسم والسعر.
-4. لو المنتج غير متوفر، اقترح بديل قريب.
-5. متخترعش منتجات مش في القائمة تحت.
+        // ✅ تجهيز التاريخ لـ Gemini
+        const formattedHistory = (history || []).map((msg: { role: string; content: string }) => ({
+            role: msg.role === "assistant" ? "model" : "user",
+            parts: [{ text: msg.content }]
+        }));
 
-قائمة المنتجات المتوفرة في المتجر:
-${productList}
-
-سؤال الزائر: ${message}
-
-ردّك:`;
-
-        // ✅ تم تصحيح اسم الموديل
-        const result = await ai.models.generateContent({
-            model: "gemini-3.6-flash",
-            contents: prompt,
+        // ✅ إضافة رسالة المستخدم الجديدة في آخر التاريخ
+        formattedHistory.push({
+            role: "user",
+            parts: [{ text: message }]
         });
 
-        const response = result.text;
+        const result = await ai.models.generateContent({
+            model: "gemini-3.6-flash",
+            contents: formattedHistory,
+            config: {
+                systemInstruction: systemPrompt, // ✅ بنبعت التعليمات هنا عشان ميتلخبطش
+            }
+        });
 
-        return NextResponse.json({ reply: response });
-    } catch (error) {
+        if (!result || !result.text) {
+            throw new Error("لم يتم استلام رد من الذكاء الاصطناعي");
+        }
+
+        return NextResponse.json({ reply: result.text });
+    } catch (error: any) {
         console.error("Gemini API error:", error);
         return NextResponse.json(
-            { error: "حصلت مشكلة في الاتصال. حاول تاني." },
+            { error: `مشكلة في الـ AI: ${error.message || "تأكد من الـ API Key"}` },
             { status: 500 }
         );
     }

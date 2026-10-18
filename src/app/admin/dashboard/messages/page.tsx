@@ -4,12 +4,12 @@ import { MessageListSkeleton } from "@/components/skeleton";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAdmin } from "@/components/admin-context";
-import { useToast } from "@/components/toast-context"; // ✅ ضفنا الإشعارات
-import { fetchAllMessages, type ContactMessage } from "@/lib/contact-api";
+import { useToast } from "@/components/toast-context";
+import { fetchAllMessages, markMessageAsRead, type ContactMessage } from "@/lib/contact-api";
 
 export default function AdminMessagesPage() {
     const { isLoggedIn } = useAdmin();
-    const { showToast } = useToast(); // ✅
+    const { showToast } = useToast();
     const [messages, setMessages] = useState<ContactMessage[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
@@ -20,7 +20,7 @@ export default function AdminMessagesPage() {
             .then(setMessages)
             .catch((e) => {
                 console.error(e);
-                showToast("فشل تحميل الرسائل، حاول تحديث الصفحة", "error"); // ✅
+                showToast("فشل تحميل الرسائل، حاول تحديث الصفحة", "error");
             })
             .finally(() => setIsLoading(false));
     }, [isLoggedIn, showToast]);
@@ -32,6 +32,18 @@ export default function AdminMessagesPage() {
     });
 
     const unreadCount = messages.filter((m) => !m.isRead).length;
+
+    const handleMarkAsRead = async (id: number) => {
+        // Optimistic Update
+        setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, isRead: true } : m)));
+
+        const result = await markMessageAsRead(id);
+        if (result.error) {
+            // Rollback if failed
+            setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, isRead: false } : m)));
+            showToast(result.error, "error");
+        }
+    };
 
     return (
         <div className="max-w-5xl mx-auto px-6 lg:px-8 py-12">
@@ -155,13 +167,21 @@ export default function AdminMessagesPage() {
                             </p>
 
                             {/* Actions */}
-                            <div className="flex gap-2 pt-4 border-t border-charcoal/10">
+                            <div className="flex flex-wrap gap-2 pt-4 border-t border-charcoal/10">
                                 <a
                                     href={`mailto:${msg.email}?subject=${encodeURIComponent("رد على رسالتك - Mood")}&body=${encodeURIComponent(`مرحباً ${msg.name}،\n\n`)}`}
                                     className="text-xs font-medium bg-charcoal hover:bg-gold text-cream hover:text-charcoal px-4 py-2 rounded-md transition-colors"
                                 >
                                     رد عبر الإيميل
                                 </a>
+                                {!msg.isRead && (
+                                    <button
+                                        onClick={() => handleMarkAsRead(msg.id)}
+                                        className="text-xs font-medium border border-charcoal/20 text-charcoal hover:border-charcoal px-4 py-2 rounded-md transition-colors"
+                                    >
+                                        تمييز كمقروءة
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}

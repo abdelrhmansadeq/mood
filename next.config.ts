@@ -7,6 +7,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "images.unsplash.com",
       },
+      {
+        // ✅ السماح لـ Next.js بعرض الصور من Supabase Storage
+        protocol: "https",
+        hostname: "dfignsrhvefuxjihtynh.supabase.co",
+      },
     ],
   },
 };
