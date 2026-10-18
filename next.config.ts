@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "dfignsrhvefuxjihtynh.supabase.co",
       },
+      {
+        // ✅ السماح لـ Next.js بعرض الصور من محرك بحث Bing
+        protocol: "https",
+        hostname: "tse2.mm.bing.net",
+      },
     ],
   },
 };
