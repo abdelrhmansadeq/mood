@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Order, OrderItem } from "@/lib/orders-api";
 
+// ✅ 1. تحديث الـ Type عشان يشمل الحقول الجديدة
 type SupabaseOrder = {
     id: number;
     user_id: string;
@@ -16,12 +17,15 @@ type SupabaseOrder = {
     notes: string | null;
     subtotal: number;
     shipping: number;
+    discount_amount: number | null; // ✅ جديد
+    coupon_code: string | null;     // ✅ جديد
     total: number;
     items: OrderItem[];
     status: Order["status"];
     created_at: string;
 };
 
+// ✅ 2. تحديث دالة التحويل عشان تمرر الحقول الجديدة
 function toOrder(row: SupabaseOrder): Order {
     return {
         id: row.id,
@@ -33,6 +37,8 @@ function toOrder(row: SupabaseOrder): Order {
         notes: row.notes,
         subtotal: row.subtotal,
         shipping: row.shipping,
+        discountAmount: row.discount_amount || 0, // ✅ جديد
+        couponCode: row.coupon_code || null,     // ✅ جديد
         total: row.total,
         items: row.items,
         status: row.status,
