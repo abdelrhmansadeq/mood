@@ -13,8 +13,7 @@ export default function AIAssistant() {
     const pathname = usePathname();
     const isProductPage = /^\/products\/\d+/.test(pathname);
 
-    if (pathname.startsWith("/admin")) return null;
-
+    // ✅ 1. كل الـ Hooks لازم تتستدعي الأول (مفيش return قبل كده)
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
         {
@@ -30,6 +29,9 @@ export default function AIAssistant() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, isLoading]);
 
+    // ✅ 2. دلوقتي بعد كل الـ Hooks، ينفع نعمل return
+    if (pathname.startsWith("/admin")) return null;
+
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         if (!input.trim() || isLoading) return;
@@ -40,13 +42,10 @@ export default function AIAssistant() {
         setIsLoading(true);
 
         try {
-            // ✅ بنبعت آخر 4 رسايل كـ History عشان البوت يفتكر سياق الكلام
-            const history = messages.slice(-4);
-
             const res = await fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: userMessage, history }),
+                body: JSON.stringify({ message: userMessage }),
             });
 
             const data = await res.json();
