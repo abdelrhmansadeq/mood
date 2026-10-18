@@ -3,17 +3,43 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { useToast } from "./toast-context";
 
 export default function Footer() {
     const year = new Date().getFullYear();
     const [email, setEmail] = useState("");
     const [subscribed, setSubscribed] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { showToast } = useToast();
 
-    const handleSubscribe = (e: FormEvent) => {
+    const handleSubscribe = async (e: FormEvent) => {
         e.preventDefault();
-        setSubscribed(true);
-        setEmail("");
-        setTimeout(() => setSubscribed(false), 4000);
+        if (!email.trim()) return;
+
+        setIsSubmitting(true);
+        try {
+            const res = await fetch("/api/newsletter", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || "فشل الاشتراك في النشرة");
+            }
+
+            showToast("تم الاشتراك في النشرة البريدية بنجاح", "success");
+            setSubscribed(true);
+            setEmail("");
+            setTimeout(() => setSubscribed(false), 5000);
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : "حصلت مشكلة، حاول تاني";
+            showToast(errorMessage, "error");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const socials = [
@@ -128,16 +154,18 @@ export default function Footer() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 placeholder="إيميلك"
-                                className="w-full px-3 py-2 rounded-md bg-cream/10 border border-cream/20 text-sm text-cream placeholder:text-cream/40 focus:outline-none focus:border-gold transition-colors"
+                                disabled={isSubmitting}
+                                className="w-full px-3 py-2 rounded-md bg-cream/10 border border-cream/20 text-sm text-cream placeholder:text-cream/40 focus:outline-none focus:border-gold transition-colors disabled:opacity-50"
                             />
                             <button
                                 type="submit"
-                                className="w-full bg-gold hover:bg-gold-dark text-charcoal font-medium text-sm h-10 rounded-md transition-colors"
+                                disabled={isSubmitting}
+                                className="w-full bg-gold hover:bg-gold-dark text-charcoal font-medium text-sm h-10 rounded-md transition-colors disabled:opacity-50 disabled:cursor-wait"
                             >
-                                اشترك
+                                {isSubmitting ? "جاري الاشتراك..." : "اشترك"}
                             </button>
                             {subscribed && (
-                                <p className="text-xs text-success">✓ تم الاشتراك بنجاح</p>
+                                <p className="text-xs text-success animate-fade-in">✓ تم الاشتراك بنجاح</p>
                             )}
                         </form>
                     </div>

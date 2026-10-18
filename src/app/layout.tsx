@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, IBM_Plex_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/navbar";
@@ -15,7 +15,7 @@ import { WishlistProvider } from "@/components/wishlist-context";
 import { AuthProvider } from "@/components/auth-context";
 import { ToastProvider } from "@/components/toast-context";
 import Toaster from "@/components/toaster";
-import { ThemeProvider } from "next-themes"; // ✅ ضفنا دي عشان الدارك مود
+import { ThemeProvider } from "next-themes";
 
 const inter = Inter({
     subsets: ["latin"],
@@ -41,28 +41,19 @@ export const metadata: Metadata = {
     description:
         "Mood — متجر ملابس عصري بأرقى التصاميم. اكتشف تشكيلة مميزة من الملابس الرجالية والنسائية والأطفال. شحن مجاني للطلبات أكثر من 500 ج.م.",
     keywords: [
-        "متجر ملابس",
-        "ملابس عصرية",
-        "أزياء",
-        "Mood",
-        "متجر أونلاين",
-        "ملابس رجالية",
-        "ملابس نسائية",
-        "ملابس أطفال",
-        "تسوق أونلاين",
-        "مصر",
+        "متجر ملابس", "ملابس عصرية", "أزياء", "Mood", "متجر أونلاين", "ملابس رجالية", "ملابس نسائية", "ملابس أطفال", "تسوق أونلاين", "مصر",
     ],
     authors: [{ name: "Mood" }],
     creator: "Mood",
     publisher: "Mood",
+    manifest: "/manifest.json", // ✅ ضفنا الـ Manifest هنا
     openGraph: {
         type: "website",
         locale: "ar_EG",
         url: baseUrl,
         siteName: "Mood",
         title: "Mood | متجر الأناقة",
-        description:
-            "اكتشف تشكيلة مميزة من الملابس العصرية بتصاميم تناسب ذوقك.",
+        description: "اكتشف تشكيلة مميزة من الملابس العصرية بتصاميم تناسب ذوقك.",
         images: [
             {
                 url: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&h=630&fit=crop",
@@ -76,9 +67,7 @@ export const metadata: Metadata = {
         card: "summary_large_image",
         title: "Mood | متجر الأناقة",
         description: "اكتشف تشكيلة مميزة من الملابس العصرية.",
-        images: [
-            "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&h=630&fit=crop",
-        ],
+        images: ["https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&h=630&fit=crop"],
     },
     robots: {
         index: true,
@@ -92,6 +81,11 @@ export const metadata: Metadata = {
     },
 };
 
+// ✅ ضفنا الـ Viewport عشان لون شريط الحالة في الموبايل
+export const viewport: Viewport = {
+    themeColor: "#1F1F1F",
+};
+
 export default function RootLayout({
                                        children,
                                    }: Readonly<{
@@ -103,10 +97,9 @@ export default function RootLayout({
             dir="rtl"
             data-scroll-behavior="smooth"
             className={`${inter.variable} ${plexArabic.variable}`}
-            suppressHydrationWarning // ✅ ضفنا دي عشان نمنع تحذير الـ Hydration في الدارك مود
+            suppressHydrationWarning
         >
         <body className="font-arabic bg-cream text-charcoal antialiased">
-        {/* ✅ حطينا الـ ThemeProvider هنا عشان يغلف الموقع كله */}
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <ToastProvider>
                 <AuthProvider>
@@ -116,7 +109,6 @@ export default function RootLayout({
                                 <CartProvider>
                                     <Navbar />
                                     <CartDrawer />
-                                    {/* ✅ شيلنا زرار الواتساب المكرر من هنا */}
                                     <AIAssistant />
                                     <ScrollToTop />
                                     <Toaster />

@@ -129,7 +129,8 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* Quick Links */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <Link href="/admin/dashboard/products" className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up" style={{ animationDelay: "500ms" }}>
                     <h3 className="text-lg font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors">إدارة المنتجات</h3>
                     <p className="text-sm text-muted">إضافة وتعديل وحذف المنتجات</p>
@@ -138,15 +139,20 @@ export default function DashboardPage() {
                     <h3 className="text-lg font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors">الطلبات</h3>
                     <p className="text-sm text-muted">شوف الطلبات الواردة وحدّث حالتها</p>
                 </Link>
-                <Link href="/admin/dashboard/coupons" className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up" style={{ animationDelay: "575ms" }}>
+                <Link href="/admin/dashboard/coupons" className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up" style={{ animationDelay: "600ms" }}>
                     <h3 className="text-lg font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors">أكواد الخصم</h3>
                     <p className="text-sm text-muted">إدارة كوبونات الخصم</p>
                 </Link>
-                <Link href="/admin/dashboard/messages" className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up" style={{ animationDelay: "600ms" }}>
+                <Link href="/admin/dashboard/messages" className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up" style={{ animationDelay: "650ms" }}>
                     <h3 className="text-lg font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors">الرسائل</h3>
                     <p className="text-sm text-muted">شوف رسائل العملاء</p>
                 </Link>
-                <Link href="/products" className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up" style={{ animationDelay: "650ms" }}>
+                {/* ✅ كارت المشتركين الجديد */}
+                <Link href="/admin/dashboard/subscribers" className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up" style={{ animationDelay: "700ms" }}>
+                    <h3 className="text-lg font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors">المشتركين</h3>
+                    <p className="text-sm text-muted">إدارة إيميلات النشرة البريدية</p>
+                </Link>
+                <Link href="/products" className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up" style={{ animationDelay: "750ms" }}>
                     <h3 className="text-lg font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors">عرض المتجر</h3>
                     <p className="text-sm text-muted">شوف الموقع من منظور الزائر</p>
                 </Link>
