@@ -4,7 +4,6 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { useProducts } from "./products-context";
 import { useAuth } from "./auth-context";
 import { fetchUserWishlist, addToWishlist, removeFromWishlist } from "@/lib/wishlist-api";
-import { supabase } from "@/lib/supabase";
 
 type WishlistContextType = {
     items: number[];
@@ -24,43 +23,35 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     const { products } = useProducts();
     const { user } = useAuth();
 
-    // 1. تحميل البيانات الأولية (سواء من الداتابيز أو الـ LocalStorage)
+    // 1. تحميل البيانات الأولية
     useEffect(() => {
         const loadWishlist = async () => {
             setMounted(false);
 
-            // لو المستخدم مسجل دخول
             if (user) {
                 try {
-                    // نجيب مفضلته من الداتابيز
                     const dbItems = await fetchUserWishlist(user.id);
 
-                    // نشوف لو كان فيه حاجات في الـ LocalStorage (عشان ننقلها)
                     const stored = localStorage.getItem(STORAGE_KEY);
                     let localItems: number[] = [];
                     if (stored) {
                         localItems = JSON.parse(stored) || [];
                     }
 
-                    // ندمج الاتنين (بنجيب الحاجات اللي في اللوكال مش في الداتابيز ونضيفها)
                     const itemsToAdd = localItems.filter(id => !dbItems.includes(id));
 
                     if (itemsToAdd.length > 0) {
-                        // نضيفهم للداتابيز
                         await Promise.all(itemsToAdd.map(id => addToWishlist(user.id, id)));
-                        // نحدث الـ State بالشكل النهائي
                         setItems(Array.from(new Set([...dbItems, ...localItems])));
                     } else {
                         setItems(dbItems);
                     }
 
-                    // نفضي الـ LocalStorage عشان منستخدمهوش تاني طول ما هو مسجل
                     localStorage.removeItem(STORAGE_KEY);
                 } catch (e) {
                     console.error("Error loading user wishlist:", e);
                 }
             } else {
-                // لو زائر، بنقرأ من الـ LocalStorage زي الأول
                 try {
                     const stored = localStorage.getItem(STORAGE_KEY);
                     if (stored) {
@@ -75,10 +66,11 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
             setMounted(true);
         };
 
-        loadWishlist();
+        // ✅ حل مشكلة الـ Promise ignored
+        void loadWishlist();
     }, [user]);
 
-    // 2. حفظ التغييرات (لو زائر بنحفظ في المتصفح فقط)
+    // 2. حفظ التغييرات للزوار
     useEffect(() => {
         if (!mounted) return;
         if (!user) {
@@ -95,7 +87,10 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
         if (!mounted || products.length === 0) return;
         const validIds = new Set(products.map((p) => p.id));
         const filtered = items.filter((id) => validIds.has(id));
+
         if (filtered.length !== items.length) {
+            // ✅ حل مشكلة setState inside effect
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setItems(filtered);
         }
     }, [products, mounted, items]);
@@ -104,13 +99,11 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     const toggleItem = async (productId: number) => {
         const isCurrentlyIn = items.includes(productId);
 
-        // تحديث الواجهة فوراً (Optimistic UI)
         const newItems = isCurrentlyIn
             ? items.filter(id => id !== productId)
             : [...items, productId];
         setItems(newItems);
 
-        // لو المستخدم مسجل، بنطبق التغيير في الداتابيز
         if (user) {
             if (isCurrentlyIn) {
                 await removeFromWishlist(user.id, productId);
@@ -121,10 +114,8 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     };
 
     const removeItem = async (productId: number) => {
-        // تحديث الواجهة فوراً
         setItems((prev) => prev.filter((id) => id !== productId));
 
-        // لو مسجل، بنمسح من الداتابيز
         if (user) {
             await removeFromWishlist(user.id, productId);
         }
@@ -134,10 +125,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
 
     const clearWishlist = () => {
         setItems([]);
-        if (user) {
-            // لو عايزين نمسح كل حاجة من الداتابيز (اختياري)
-            // ممكن نعمل دالة تسحب كل حاجة وتمسحها، بس دلوقتي هنكتفي بمسحها من الواجهة
-        } else {
+        if (!user) {
             localStorage.removeItem(STORAGE_KEY);
         }
     };

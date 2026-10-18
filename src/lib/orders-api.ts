@@ -21,8 +21,8 @@ export type Order = {
     notes: string | null;
     subtotal: number;
     shipping: number;
-    discountAmount: number; // ✅ جديد
-    couponCode: string | null; // ✅ جديد
+    discountAmount: number;
+    couponCode: string | null;
     total: number;
     items: OrderItem[];
     status: "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
@@ -32,7 +32,7 @@ export type Order = {
 
 type SupabaseOrder = {
     id: number;
-    user_id: string;
+    user_id: string | null; // ✅ بقى يقبل null عشان الزوار
     user_email: string | null;
     order_number: string;
     full_name: string;
@@ -74,6 +74,7 @@ function toOrder(row: SupabaseOrder): Order {
 export async function createOrder(params: {
     fullName: string;
     phone: string;
+    email?: string; // ✅ ضفنا الإيميل
     city: string;
     address: string;
     notes: string;
@@ -84,16 +85,18 @@ export async function createOrder(params: {
     try {
         const { data: { session } } = await supabase.auth.getSession();
 
-        if (!session) {
-            return { error: "لازم تسجل دخول الأول" };
+        const headers: Record<string, string> = {
+            "Content-Type": "application/json",
+        };
+
+        // ✅ بنضيف التوكن بس لو المستخدم مسجل دخول
+        if (session) {
+            headers.Authorization = `Bearer ${session.access_token}`;
         }
 
         const res = await fetch("/api/orders/create", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${session.access_token}`,
-            },
+            headers,
             body: JSON.stringify(params),
         });
 

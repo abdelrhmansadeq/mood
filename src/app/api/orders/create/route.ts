@@ -6,6 +6,7 @@ import { z } from "zod";
 const orderSchema = z.object({
     fullName: z.string().min(3, "الاسم يجب أن يكون 3 أحرف على الأقل").max(50),
     phone: z.string().regex(/^01[0125][0-9]{8}$/, "رقم الموبايل غير صحيح (مثال: 01012345678)"),
+    email: z.string().email("الإيميل غير صحيح").optional().or(z.literal("")), // ✅ الإيميل اختياري للزوار
     city: z.string().min(2, "المدينة مطلوبة"),
     address: z.string().min(5, "العنوان يجب أن يكون 5 أحرف على الأقل"),
     notes: z.string().optional(),
@@ -19,7 +20,6 @@ const orderSchema = z.object({
         color: z.string(),
         quantity: z.number().int().positive("الكمية يجب أن تكون رقم صحيح أكبر من صفر").max(10, "الحد الأقصى 10 قطع"),
     })).min(1, "السلة فاضية"),
-    // ✅ ضفنا الكوبون في الـ Schema
     couponCode: z.string().optional().nullable(),
     discountAmount: z.number().optional(),
 });
@@ -44,18 +44,22 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: firstError }, { status: 400 });
         }
 
-        const { fullName, phone, city, address, notes, items, couponCode } = validation.data;
+        const { fullName, phone, email, city, address, notes, items, couponCode } = validation.data;
+
+        // ✅ التحقق من المستخدم (اختياري)
+        let userId: string | null = null;
+        let userEmail = email || ""; // بنستخدم الإيميل اللي في الفورم كأساس
 
         const authHeader = request.headers.get("authorization");
         const token = authHeader?.replace("Bearer ", "");
 
-        if (!token) return NextResponse.json({ error: "لازم تسجل دخول الأول" }, { status: 401 });
-
-        const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
-        if (authError || !authUser) return NextResponse.json({ error: "لازم تسجل دخول الأول" }, { status: 401 });
-
-        const userId = authUser.id;
-        const userEmail = authUser.email || "";
+        if (token) {
+            const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
+            if (!authError && authUser) {
+                userId = authUser.id;
+                userEmail = authUser.email || email || ""; // لو مسجل، إيميله هو الأساس
+            }
+        }
 
         const productIds = items.map((i) => i.productId);
         const { data: dbProducts, error: fetchError } = await supabaseAdmin
@@ -91,7 +95,7 @@ export async function POST(request: Request) {
         const subtotal = enrichedItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
         const shipping = subtotal >= 500 ? 0 : 50;
 
-        // ✅ التحقق من الكوبون في السيرفر (تأمين ضد التلاعب)
+        // التحقق من الكوبون
         let actualDiscount = 0;
         let validCoupon = null;
 
@@ -115,7 +119,7 @@ export async function POST(request: Request) {
                     } else if (coupon.discount_fixed) {
                         actualDiscount = coupon.discount_fixed;
                     }
-                    if (actualDiscount > subtotal) actualDiscount = subtotal; // الخصم ميكونش أكبر من السعر
+                    if (actualDiscount > subtotal) actualDiscount = subtotal;
                     actualDiscount = Math.round(actualDiscount);
                 }
             }
@@ -165,10 +169,10 @@ export async function POST(request: Request) {
 
         if (!isUnique) throw new Error("فشل توليد رقم طلب فريد، جرب تاني.");
 
-        // ✅ إنشاء الطلب مع حفظ الخصم والكوبون
+        // ✅ إنشاء الطلب (الـ user_id يقبل null)
         const { data: order, error: orderError } = await supabaseAdmin.from("orders").insert({
             user_id: userId,
-            user_email: userEmail,
+            user_email: userEmail || null,
             order_number: orderNumber,
             full_name: fullName,
             phone,
@@ -192,15 +196,10 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "فشل إنشاء الطلب" }, { status: 500 });
         }
 
-        // ✅ زيادة عداد استخدام الكوبون (لو كان مستخدم)
         if (validCoupon) {
-            await supabaseAdmin
-                .from("coupons")
-                .update({ used_count: validCoupon.used_count + 1 })
-                .eq("id", validCoupon.id);
+            await supabaseAdmin.from("coupons").update({ used_count: validCoupon.used_count + 1 }).eq("id", validCoupon.id);
         }
 
-        // زيادة عدّاد المبيعات
         for (const item of enrichedItems) {
             await supabaseAdmin.rpc("increment_sold_count", { p_product_id: item.productId, p_quantity: item.quantity });
         }
@@ -214,18 +213,20 @@ export async function POST(request: Request) {
             address,
             subtotal,
             shipping,
-            total, // هنبعت الإجمالي النهائي
+            total,
             items: enrichedItems.map((i) => ({ name: i.name, size: i.size, color: i.color, quantity: i.quantity, price: i.price }))
         };
 
+        // ✅ لو فيه إيميل (سواء من الحساب أو من الفورم) بنبعت للعميل
         if (userEmail) {
             sendEmail({ to: userEmail, toName: fullName, subject: `تأكيد طلبك ${orderNumber} - Mood`, htmlContent: buildCustomerOrderEmail(emailData) })
                 .catch((err) => console.error("Customer email failed:", err));
         }
 
+        // إيميل الأدمن
         const adminEmail = process.env.BREVO_ADMIN_EMAIL;
         if (adminEmail) {
-            sendEmail({ to: adminEmail, toName: "Mood Admin", subject: `🔔 طلب جديد: ${orderNumber}`, htmlContent: buildAdminOrderEmail(emailData, userEmail) })
+            sendEmail({ to: adminEmail, toName: "Mood Admin", subject: `🔔 طلب جديد: ${orderNumber}`, htmlContent: buildAdminOrderEmail(emailData, userEmail || "زائر") })
                 .catch((err) => console.error("Admin email failed:", err));
         }
 

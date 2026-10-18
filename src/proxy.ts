@@ -40,10 +40,11 @@ export async function proxy(request: NextRequest) {
 
     const pathname = request.nextUrl.pathname
 
-    const isUserProtected = pathname.startsWith('/account') || pathname.startsWith('/checkout')
+    // ✅ شلنا /checkout عشان نسمح للزوار بالشراء
+    const isUserProtected = pathname.startsWith('/account')
     const isAdminProtected = pathname.startsWith('/admin/dashboard')
 
-    // 1. لو مش مسجل دخول وبيحاول يدخل صفحة محمية
+    // 1. لو مش مسجل دخول وبيحاول يدخل صفحة محمية (زي /account)
     if (!user && isUserProtected) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
@@ -58,7 +59,7 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(url)
     }
 
-    // ✅ 3. لو مسجل دخول وبيحاول يفتح صفحة اللوجين، نوديه للمكان اللي كان رايحه
+    // 3. لو مسجل دخول وبيحاول يفتح صفحة اللوجين، نوديه للمكان اللي كان رايحه
     if (user && pathname === '/login') {
         const next = request.nextUrl.searchParams.get('next') || '/account'
         return NextResponse.redirect(new URL(next, request.url))
