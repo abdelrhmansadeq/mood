@@ -13,9 +13,6 @@ export default function AIAssistant() {
     const pathname = usePathname();
     const isProductPage = /^\/products\/\d+/.test(pathname);
 
-    // نخفي الزرار في لوحة التحكم
-    if (pathname.startsWith("/admin")) return null;
-
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
         {

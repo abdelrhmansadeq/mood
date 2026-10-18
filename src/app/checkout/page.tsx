@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -23,7 +23,7 @@ export default function CheckoutPage() {
     const router = useRouter();
     const { items, totalPrice, clearCart } = useCart();
     const { user, isLoading: authLoading } = useAuth();
-    const { refreshProducts } = useProducts();
+    const { products, refreshProducts } = useProducts();
 
     const [formData, setFormData] = useState<FormData>({
         fullName: "",
@@ -36,6 +36,24 @@ export default function CheckoutPage() {
     const [orderNumber, setOrderNumber] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
+
+    // ✅ التحقق من المخزون قبل الشحن
+    const outOfStockItems = useMemo(() => {
+        return items.filter((item) => {
+            const product = products.find((p) => p.id === item.productId);
+            if (!product) return true;
+
+            if (product.colors && product.colors.length > 0) {
+                const color = product.colors.find((c) => c.name === item.color);
+                if (!color) return true;
+                const stock = ((color.sizes || {}) as Record<string, number>)[item.size] || 0;
+                return stock < item.quantity;
+            } else {
+                const stock = ((product.sizes || {}) as Record<string, number>)[item.size] || 0;
+                return stock < item.quantity;
+            }
+        });
+    }, [items, products]);
 
     useEffect(() => {
         if (!user) return;
@@ -110,6 +128,11 @@ export default function CheckoutPage() {
 
         if (!validation.success) {
             setError(validation.error.issues[0].message);
+            return;
+        }
+
+        if (outOfStockItems.length > 0) {
+            setError("فيه منتجات في سلتك خلصت من المخزون. يرجى تحديث السلة.");
             return;
         }
 
@@ -327,31 +350,39 @@ export default function CheckoutPage() {
                             </h2>
 
                             <div className="space-y-4 mb-5 max-h-72 overflow-y-auto">
-                                {items.map((item) => (
-                                    <div
-                                        key={`${item.productId}-${item.size}-${item.color}`}
-                                        className="flex gap-3"
-                                    >
-                                        <div className="relative w-14 h-16 rounded-md overflow-hidden bg-cream flex-shrink-0">
-                                            <img
-                                                src={item.image}
-                                                alt={item.name}
-                                                className="absolute inset-0 w-full h-full object-cover"
-                                            />
+                                {items.map((item) => {
+                                    const isOutOfStock = outOfStockItems.some(i => i.productId === item.productId && i.size === item.size && i.color === item.color);
+                                    return (
+                                        <div
+                                            key={`${item.productId}-${item.size}-${item.color}`}
+                                            className="flex gap-3"
+                                        >
+                                            <div className="relative w-14 h-16 rounded-md overflow-hidden bg-cream flex-shrink-0 border border-charcoal/5">
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img
+                                                    src={item.image}
+                                                    alt={item.name}
+                                                    className="absolute inset-0 w-full h-full object-cover"
+                                                />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className={`text-sm font-medium truncate ${isOutOfStock ? 'text-error line-through' : 'text-charcoal'}`}>
+                                                    {item.name}
+                                                </p>
+                                                <p className="text-xs text-muted">
+                                                    {item.size} × {item.quantity}
+                                                </p>
+                                                {isOutOfStock ? (
+                                                    <p className="text-xs text-error font-medium mt-1">خلص من المخزون</p>
+                                                ) : (
+                                                    <p className="text-sm font-semibold text-charcoal">
+                                                        {item.price * item.quantity} ج.م
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-charcoal truncate">
-                                                {item.name}
-                                            </p>
-                                            <p className="text-xs text-muted">
-                                                {item.size} × {item.quantity}
-                                            </p>
-                                            <p className="text-sm font-semibold text-charcoal">
-                                                {item.price * item.quantity} ج.م
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
 
                             <div className="border-t border-charcoal/10 pt-5 space-y-2 text-sm">
@@ -370,8 +401,14 @@ export default function CheckoutPage() {
                             </div>
 
                             {error && (
-                                <div className="mt-4 bg-error/10 text-error border border-error/30 rounded-md p-3 text-sm">
+                                <div className="mt-4 bg-error/10 text-error border border-error/30 rounded-md p-3 text-sm font-medium">
                                     {error}
+                                </div>
+                            )}
+
+                            {outOfStockItems.length > 0 && (
+                                <div className="mt-4 bg-warning/10 text-warning-dark border border-warning/30 rounded-md p-3 text-sm font-medium">
+                                    بعض المنتجات في سلتك خلصت. برجاء حذفها من السلة أو تحديث الكمية للمتابعة.
                                 </div>
                             )}
 
@@ -379,7 +416,7 @@ export default function CheckoutPage() {
                             <div className="hidden md:block mt-6">
                                 <button
                                     type="submit"
-                                    disabled={isSubmitting}
+                                    disabled={isSubmitting || outOfStockItems.length > 0}
                                     className="w-full bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors disabled:opacity-50"
                                 >
                                     {isSubmitting ? "جاري إرسال الطلب..." : "تأكيد الطلب"}
@@ -396,7 +433,7 @@ export default function CheckoutPage() {
                 <div className="md:hidden fixed bottom-16 left-0 right-0 p-4 bg-cream/95 backdrop-blur-md border-t border-charcoal/10 z-30">
                     <button
                         type="submit"
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || outOfStockItems.length > 0}
                         className="w-full bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors disabled:opacity-50 shadow-lg"
                     >
                         {isSubmitting ? "جاري إرسال الطلب..." : "تأكيد الطلب"}

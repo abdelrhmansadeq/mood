@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class', // ✅ السطر الوحيد اللي ضفناه لتفعيل الدارك مود
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -8,8 +9,12 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        cream: "#FAFAF7",
-        charcoal: "#1F1F1F",
+        // ✅ ربطنا الألوان الأساسية بالمتغيرات عشان تتقلب في الدارك مود
+        cream: "rgb(var(--bg-cream) / <alpha-value>)",
+        charcoal: "rgb(var(--text-charcoal) / <alpha-value>)",
+        white: "rgb(var(--bg-white) / <alpha-value>)",
+
+        // باقي ألوانك زي ما هي بالظبط
         gold: "#C89B5A",
         "gold-dark": "#A87F45",
         muted: "#6B6B6B",

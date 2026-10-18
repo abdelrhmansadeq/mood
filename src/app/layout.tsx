@@ -15,6 +15,7 @@ import { WishlistProvider } from "@/components/wishlist-context";
 import { AuthProvider } from "@/components/auth-context";
 import { ToastProvider } from "@/components/toast-context";
 import Toaster from "@/components/toaster";
+import { ThemeProvider } from "next-themes"; // ✅ ضفنا دي عشان الدارك مود
 
 const inter = Inter({
     subsets: ["latin"],
@@ -102,32 +103,36 @@ export default function RootLayout({
             dir="rtl"
             data-scroll-behavior="smooth"
             className={`${inter.variable} ${plexArabic.variable}`}
+            suppressHydrationWarning // ✅ ضفنا دي عشان نمنع تحذير الـ Hydration في الدارك مود
         >
         <body className="font-arabic bg-cream text-charcoal antialiased">
-        <ToastProvider>
-            <AuthProvider>
-                <ProductsProvider>
-                    <AdminProvider>
-                        <WishlistProvider>
-                            <CartProvider>
-                                <Navbar />
-                                <CartDrawer />
-                                <WhatsAppButton />
-                                <AIAssistant />
-                                <ScrollToTop />
-                                <Toaster />
-                                <main className="pt-24 pb-20 md:pb-0 min-h-screen">
-                                    {children}
-                                </main>
-                                <Footer />
-                                <WhatsAppButton />
-                                <MobileNav />
-                            </CartProvider>
-                        </WishlistProvider>
-                    </AdminProvider>
-                </ProductsProvider>
-            </AuthProvider>
-        </ToastProvider>
+        {/* ✅ حطينا الـ ThemeProvider هنا عشان يغلف الموقع كله */}
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <ToastProvider>
+                <AuthProvider>
+                    <ProductsProvider>
+                        <AdminProvider>
+                            <WishlistProvider>
+                                <CartProvider>
+                                    <Navbar />
+                                    <CartDrawer />
+                                    {/* ✅ شيلنا زرار الواتساب المكرر من هنا */}
+                                    <AIAssistant />
+                                    <ScrollToTop />
+                                    <Toaster />
+                                    <main className="pt-24 pb-20 md:pb-0 min-h-screen">
+                                        {children}
+                                    </main>
+                                    <Footer />
+                                    <WhatsAppButton />
+                                    <MobileNav />
+                                </CartProvider>
+                            </WishlistProvider>
+                        </AdminProvider>
+                    </ProductsProvider>
+                </AuthProvider>
+            </ToastProvider>
+        </ThemeProvider>
         </body>
         </html>
     );

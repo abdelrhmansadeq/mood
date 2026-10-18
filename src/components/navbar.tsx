@@ -5,6 +5,7 @@ import { useState } from "react";
 import CartIcon from "./cart-icon";
 import WishlistIcon from "./wishlist-icon";
 import UserMenu from "./user-menu";
+import ThemeToggle from "./theme-toggle"; // ✅ ضفنا استدعاء زرار الدارك مود
 
 export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
@@ -24,7 +25,7 @@ export default function Navbar() {
             </div>
 
             {/* Navbar */}
-            <nav className="bg-cream/90 backdrop-blur-md border-b border-charcoal/10">
+            <nav className="bg-cream/90 backdrop-blur-md border-b border-charcoal/10 transition-colors">
                 <div className="max-w-7xl mx-auto px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
 
@@ -52,7 +53,10 @@ export default function Navbar() {
                         </div>
 
                         {/* Right Side Icons */}
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3 sm:gap-4">
+                            {/* ✅ حطينا زرار الدارك مود هنا */}
+                            <ThemeToggle />
+
                             <UserMenu />
                             <WishlistIcon />
                             <CartIcon />

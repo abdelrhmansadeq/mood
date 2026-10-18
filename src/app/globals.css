@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ✅ إضافة متغيرات ألوان الوضع الفاتح والغامق */
+@layer base {
+  :root {
+    --bg-cream: 250 250 247; /* #FAFAF7 */
+    --bg-white: 255 255 255; /* #FFFFFF */
+    --text-charcoal: 31 31 31; /* #1F1F1F */
+  }
+
+  .dark {
+    --bg-cream: 18 18 18; /* #121212 */
+    --bg-white: 28 28 28; /* #1C1C1C */
+    --text-charcoal: 250 250 247; /* #FAFAF7 */
+  }
+}
+
 /* Global Resets */
 * {
   box-sizing: border-box;
@@ -15,6 +30,10 @@ body {
   margin: 0;
   padding: 0;
   line-height: 1.6;
+  /* ✅ ربطنا لون الخلفية والنص بالمتغيرات عشان الدارك مود */
+  background-color: rgb(var(--bg-cream));
+  color: rgb(var(--text-charcoal));
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Selection */
@@ -29,7 +48,8 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #FAFAF7;
+  /* ✅ ربطنا لون التراكم بالمتغيرات */
+  background: rgb(var(--bg-cream));
 }
 
 ::-webkit-scrollbar-thumb {
