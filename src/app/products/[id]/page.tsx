@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: Props) {
     };
 }
 
-// ✅ الصفحة أصبحت Server Component
+// ✅ الصفحة (Server Component)
 export default async function ProductPage({ params }: Props) {
     const { id } = await params;
 
@@ -44,10 +44,10 @@ export default async function ProductPage({ params }: Props) {
         .single();
 
     if (!product) {
-        notFound(); // بيوجهه لصفحة الـ 404 اللي أنت عاملها
+        notFound();
     }
 
-    // 2. جلب المنتجات المشابهة (نفس الفئة)
+    // 2. جلب المنتجات المشابهة
     const { data: related } = await supabase
         .from("products")
         .select("*")
@@ -55,6 +55,44 @@ export default async function ProductPage({ params }: Props) {
         .neq("id", product.id)
         .limit(4);
 
-    // 3. نمرر البيانات الجاهزة للـ Client Component
-    return <ProductDetail product={product} related={related || []} />;
+    // ✅ 3. تجهيز بيانات JSON-LD لمحركات البحث
+    const productPrice = product.sale_price || product.price;
+    const isAvailable = product.stock > 0;
+
+    const jsonLd = {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        name: product.name,
+        image: product.image,
+        description: product.description,
+        sku: product.id.toString(),
+        offers: {
+            "@type": "Offer",
+            url: `https://mood-khaki-beta.vercel.app/products/${product.id}`,
+            priceCurrency: "EGP",
+            price: productPrice,
+            itemCondition: "https://schema.org/NewCondition",
+            availability: isAvailable ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        },
+        // لو المنتج عنده تقييمات، بنضيفها
+        ...(product.reviews_count > 0 && {
+            aggregateRating: {
+                "@type": "AggregateRating",
+                ratingValue: product.avg_rating,
+                reviewCount: product.reviews_count,
+            },
+        }),
+    };
+
+    return (
+        <>
+            {/* ✅ حقن كود الـ JSON-LD */}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+
+            <ProductDetail product={product} related={related || []} />
+        </>
+    );
 }
