@@ -41,6 +41,8 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     };
 
     useEffect(() => {
+        // ✅ إضافة هذا السطر لتجاهل تحذير React 19
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         void loadProducts();
     }, []);
 

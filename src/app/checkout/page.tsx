@@ -13,7 +13,7 @@ import { z } from "zod";
 type FormData = {
     fullName: string;
     phone: string;
-    email: string; // ✅ ضفنا الإيميل
+    email: string;
     city: string;
     address: string;
     notes: string;
@@ -36,6 +36,9 @@ export default function CheckoutPage() {
     const [orderNumber, setOrderNumber] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
+
+    // ✅ حالة حفظ أخطاء كل حقل على حدة
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
     // ✅ حالات كود الخصم
     const [couponCode, setCouponCode] = useState("");
@@ -62,7 +65,6 @@ export default function CheckoutPage() {
     }, [items, products]);
 
     useEffect(() => {
-        // ✅ جلب بيانات المستخدم بس لو هو مسجل دخول
         if (!user) return;
 
         let isMounted = true;
@@ -105,6 +107,10 @@ export default function CheckoutPage() {
         e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
     ) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+        // ✅ بنمسح الخطأ عن الحقل ده أول ما المستخدم يعدله
+        if (fieldErrors[e.target.name]) {
+            setFieldErrors(prev => ({ ...prev, [e.target.name]: "" }));
+        }
     };
 
     const handleApplyCoupon = async () => {
@@ -139,11 +145,12 @@ export default function CheckoutPage() {
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError("");
+        setFieldErrors({}); // مسح الأخطاء القديمة
 
         const checkoutSchema = z.object({
             fullName: z.string().min(3, "الاسم يجب أن يكون 3 أحرف على الأقل"),
             phone: z.string().regex(/^01[0125][0-9]{8}$/, "رقم الموبايل غير صحيح (مثال: 01012345678)"),
-            email: z.string().email("الإيميل غير صحيح").optional().or(z.literal("")), // ✅ اختياري
+            email: z.string().email("الإيميل غير صحيح").optional().or(z.literal("")),
             city: z.string().min(2, "المدينة مطلوبة"),
             address: z.string().min(5, "العنوان يجب أن يكون 5 أحرف على الأقل"),
         });
@@ -151,7 +158,15 @@ export default function CheckoutPage() {
         const validation = checkoutSchema.safeParse(formData);
 
         if (!validation.success) {
-            setError(validation.error.issues[0].message);
+            // ✅ تجميع أخطاء كل حقل عشان نلون الخانات
+            const errors: Record<string, string> = {};
+            validation.error.issues.forEach((issue) => {
+                if (issue.path[0]) {
+                    errors[issue.path[0] as string] = issue.message;
+                }
+            });
+            setFieldErrors(errors);
+            setError("فيه أخطاء في البيانات. يرجى مراجعة الحقول المطلوبة.");
             return;
         }
 
@@ -166,7 +181,7 @@ export default function CheckoutPage() {
             const result = await createOrder({
                 fullName: formData.fullName,
                 phone: formData.phone,
-                email: formData.email, // ✅ بنبعت الإيميل
+                email: formData.email,
                 city: formData.city,
                 address: formData.address,
                 notes: formData.notes,
@@ -212,8 +227,6 @@ export default function CheckoutPage() {
             </div>
         );
     }
-
-    // ✅ شيلنا شرط if (!user) return null; عشان الزائر يدخل
 
     if (submitted) {
         return (
@@ -291,28 +304,79 @@ export default function CheckoutPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div>
                                 <label className="block text-sm font-medium text-charcoal mb-2">الاسم الكامل *</label>
-                                <input type="text" name="fullName" required value={formData.fullName} onChange={handleChange} className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm focus:outline-none focus:border-gold" />
+                                <input
+                                    type="text"
+                                    name="fullName"
+                                    required
+                                    value={formData.fullName}
+                                    onChange={handleChange}
+                                    className={`w-full px-4 py-3 rounded-md border bg-white text-sm transition-colors focus:outline-none ${
+                                        fieldErrors.fullName ? "border-error focus:border-error" : "border-charcoal/15 focus:border-gold"
+                                    }`}
+                                />
+                                {fieldErrors.fullName && <p className="text-xs text-error mt-1">{fieldErrors.fullName}</p>}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-charcoal mb-2">رقم التليفون *</label>
-                                <input type="tel" name="phone" required value={formData.phone} onChange={handleChange} className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm focus:outline-none focus:border-gold" />
+                                <input
+                                    type="tel"
+                                    name="phone"
+                                    required
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                    className={`w-full px-4 py-3 rounded-md border bg-white text-sm transition-colors focus:outline-none ${
+                                        fieldErrors.phone ? "border-error focus:border-error" : "border-charcoal/15 focus:border-gold"
+                                    }`}
+                                />
+                                {fieldErrors.phone && <p className="text-xs text-error mt-1">{fieldErrors.phone}</p>}
                             </div>
                         </div>
 
-                        {/* ✅ خانة الإيميل الجديدة */}
                         <div>
                             <label className="block text-sm font-medium text-charcoal mb-2">الإيميل (اختياري - لتأكيد الطلب)</label>
-                            <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm focus:outline-none focus:border-gold" placeholder="example@email.com" />
+                            <input
+                                type="email"
+                                name="email"
+                                value={formData.email}
+                                onChange={handleChange}
+                                className={`w-full px-4 py-3 rounded-md border bg-white text-sm transition-colors focus:outline-none ${
+                                    fieldErrors.email ? "border-error focus:border-error" : "border-charcoal/15 focus:border-gold"
+                                }`}
+                                placeholder="example@email.com"
+                            />
+                            {fieldErrors.email && <p className="text-xs text-error mt-1">{fieldErrors.email}</p>}
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium text-charcoal mb-2">المدينة *</label>
-                            <input type="text" name="city" required value={formData.city} onChange={handleChange} className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm focus:outline-none focus:border-gold" placeholder="القاهرة" />
+                            <input
+                                type="text"
+                                name="city"
+                                required
+                                value={formData.city}
+                                onChange={handleChange}
+                                className={`w-full px-4 py-3 rounded-md border bg-white text-sm transition-colors focus:outline-none ${
+                                    fieldErrors.city ? "border-error focus:border-error" : "border-charcoal/15 focus:border-gold"
+                                }`}
+                                placeholder="القاهرة"
+                            />
+                            {fieldErrors.city && <p className="text-xs text-error mt-1">{fieldErrors.city}</p>}
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium text-charcoal mb-2">العنوان بالتفصيل *</label>
-                            <textarea name="address" required value={formData.address} onChange={handleChange} rows={3} className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm focus:outline-none focus:border-gold resize-none" placeholder="الشارع، رقم العمارة، الدور، الشقة" />
+                            <textarea
+                                name="address"
+                                required
+                                value={formData.address}
+                                onChange={handleChange}
+                                rows={3}
+                                className={`w-full px-4 py-3 rounded-md border bg-white text-sm transition-colors resize-none focus:outline-none ${
+                                    fieldErrors.address ? "border-error focus:border-error" : "border-charcoal/15 focus:border-gold"
+                                }`}
+                                placeholder="الشارع، رقم العمارة، الدور، الشقة"
+                            />
+                            {fieldErrors.address && <p className="text-xs text-error mt-1">{fieldErrors.address}</p>}
                         </div>
 
                         <div>

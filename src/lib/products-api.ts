@@ -9,7 +9,7 @@ type SupabaseProduct = {
     sale_price: number | null;
     image: string;
     images: string[] | null;
-    category: "men" | "women" | "kids";
+    category: "men" | "women" | "kids" | "shoes" | "accessories";
     description: string;
     is_featured: boolean;
     stock: number;
@@ -18,6 +18,7 @@ type SupabaseProduct = {
     avg_rating: number | null;
     reviews_count: number | null;
     sold_count: number | null;
+    is_deleted: boolean | null; // ✅ ضفنا الحقل ده
     created_at: string;
 };
 
@@ -63,6 +64,7 @@ export async function fetchProducts(): Promise<Product[]> {
     const { data, error } = await supabase
         .from("products")
         .select("*")
+        .neq("is_deleted", true) // ✅ بنجيب المنتجات اللي مش محذوفة بس
         .order("id", { ascending: true });
 
     if (error) {
@@ -95,6 +97,7 @@ export async function addProductToDB(
             stock: totalStock,
             sizes,
             colors,
+            is_deleted: false, // ✅ المنتج الجديد مش محذوف بطبيعة الحال
         })
         .select()
         .single();
@@ -149,7 +152,11 @@ export async function updateProductInDB(
 }
 
 export async function deleteProductFromDB(id: number): Promise<void> {
-    const { error } = await supabase.from("products").delete().eq("id", id);
+    // ✅ بدل ما نمسح المنتج نهائي، بنعمله Soft Delete (أرشفة)
+    const { error } = await supabase
+        .from("products")
+        .update({ is_deleted: true })
+        .eq("id", id);
 
     if (error) {
         console.error("Error deleting product:", error);

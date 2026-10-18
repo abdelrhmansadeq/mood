@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { randomUUID } from "crypto";
+import sharp from "sharp"; // ✅ ضفنا مكتبة الضغط
 
 export async function POST(request: Request) {
     try {
@@ -29,22 +30,32 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "حجم الصورة كبير جداً (الأقصى 5 ميجا)" }, { status: 400 });
         }
 
-        // التحقق من نوع الملف
         if (!file.type.startsWith("image/")) {
             return NextResponse.json({ error: "الملف لازم يكون صورة" }, { status: 400 });
         }
 
-        // 3. رفع الصورة على Supabase Storage
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${randomUUID()}.${fileExt}`;
-
+        // 3. ضغط الصورة باستخدام sharp
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
+        let compressedBuffer;
+        try {
+            compressedBuffer = await sharp(buffer)
+                .resize({ width: 1000, withoutEnlargement: true }) // تصغير العرض لـ 1000 بكسل كحد أقصى
+                .webp({ quality: 80 }) // تحويل لصيغة webp عالية الجودة وخفيفة
+                .toBuffer();
+        } catch (sharpError) {
+            console.error("Sharp compression error:", sharpError);
+            return NextResponse.json({ error: "فشل معالجة الصورة، تأكد من صحة الملف" }, { status: 400 });
+        }
+
+        // 4. رفع الصورة المضغوطة على Supabase Storage
+        const fileName = `${randomUUID()}.webp`; // بنحفظها دايماً webp
+
         const { data, error } = await supabaseAdmin.storage
             .from("products")
-            .upload(fileName, buffer, {
-                contentType: file.type,
+            .upload(fileName, compressedBuffer, {
+                contentType: "image/webp", // نوع الملف بقى webp
                 upsert: false,
             });
 
@@ -53,7 +64,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "فشل رفع الصورة" }, { status: 500 });
         }
 
-        // 4. نرجع الرابط النهائي للصورة
+        // 5. نرجع الرابط النهائي للصورة
         const { data: { publicUrl } } = supabaseAdmin.storage
             .from("products")
             .getPublicUrl(fileName);
