@@ -447,3 +447,74 @@ style="display: inline-block; background: #1F1F1F; color: white; padding: 14px 3
 </html>
 `;
 }
+
+// ===== قالب إيميل السلة المتروكة =====
+export function buildAbandonedCartEmail(data: {
+    customerName: string;
+    items: { name: string; price: number; quantity: number; image: string }[];
+    total: number;
+}): string {
+    const itemsHtml = data.items.map(item => `
+    <tr>
+      <td style="padding: 10px; border-bottom: 1px solid #eee; width: 60px;">
+        <img src="${item.image}" alt="${item.name}" style="width: 50px; height: 60px; object-fit: cover; border-radius: 4px;" />
+      </td>
+      <td style="padding: 10px; border-bottom: 1px solid #eee;">
+        <strong>${item.name}</strong><br />
+        <span style="color: #666; font-size: 13px;">الكمية: ${item.quantity}</span>
+      </td>
+      <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: left;">
+        <strong>${item.price * item.quantity} ج.م</strong>
+      </td>
+    </tr>
+  `).join("");
+
+    return `
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head><meta charset="UTF-8" /></head>
+<body style="font-family: Arial, sans-serif; background-color: #FAFAF7; margin: 0; padding: 20px;">
+<div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; border: 1px solid #eee;">
+
+<div style="background: #1F1F1F; color: #FAFAF7; padding: 24px; text-align: center;">
+<h1 style="margin: 0; font-size: 28px; color: #C89B5A;">Mood</h1>
+<p style="margin: 8px 0 0; font-size: 14px;">متجر الأناقة</p>
+</div>
+
+<div style="padding: 30px;">
+<h2 style="color: #1F1F1F; margin-top: 0;">مرحباً ${data.customerName}،</h2>
+<p style="color: #666; line-height: 1.6; font-size: 15px;">
+لاحظنا إنك سبت بعض القطع في سلة التسوق بتاعتك. <br/>
+القطع دي مميزة وممكن تخلص في أي وقت! <strong>إحنا حجزناها لك بس مش هنقدر نستنى كتير.</strong>
+</p>
+
+<div style="background: #FAFAF7; border: 1px solid #eee; border-radius: 8px; padding: 15px; margin: 25px 0;">
+<h3 style="color: #1F1F1F; margin-top: 0; font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">القطع اللي في سلتك:</h3>
+<table style="width: 100%; border-collapse: collapse;">
+<tbody>${itemsHtml}</tbody>
+</table>
+<div style="text-align: left; margin-top: 15px; font-size: 18px; font-weight: bold; color: #1F1F1F;">
+الإجمالي: <span style="color: #C89B5A;">${data.total} ج.م</span>
+</div>
+</div>
+
+<div style="text-align: center; margin-top: 30px;">
+<a href="https://mood-khaki-beta.vercel.app/cart" 
+style="display: inline-block; background: #C89B5A; color: white; padding: 16px 40px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+🛒 أكمل طلبك الآن
+</a>
+</div>
+
+<p style="color: #999; font-size: 13px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center;">
+لو عندك أي استفسار، تواصل معانا على <a href="https://wa.me/201014766903" style="color: #C89B5A;">واتساب</a>
+</p>
+</div>
+
+<div style="background: #FAFAF7; padding: 20px; text-align: center; color: #999; font-size: 12px; border-top: 1px solid #eee;">
+© ${new Date().getFullYear()} Mood. جميع الحقوق محفوظة.
+</div>
+</div>
+</body>
+</html>
+`;
+}
