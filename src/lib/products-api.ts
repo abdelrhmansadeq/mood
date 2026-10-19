@@ -18,8 +18,8 @@ type SupabaseProduct = {
     avg_rating: number | null;
     reviews_count: number | null;
     sold_count: number | null;
-    meta_title: string | null;       // ✅ جديد
-    meta_description: string | null; // ✅ جديد
+    meta_title: string | null;
+    meta_description: string | null;
     is_deleted: boolean | null;
     created_at: string;
 };
@@ -44,9 +44,33 @@ function toProduct(row: SupabaseProduct): Product {
         avgRating: row.avg_rating ? Number(row.avg_rating) : 0,
         reviewsCount: row.reviews_count || 0,
         soldCount: row.sold_count || 0,
-        metaTitle: row.meta_title || null,       // ✅ جديد
-        metaDescription: row.meta_description || null, // ✅ جديد
+        metaTitle: row.meta_title || null,
+        metaDescription: row.meta_description || null,
     };
+}
+
+// ✅ دالة مساعدة لتسجيل الحركة من الفرونت إند
+async function logAction(action: string, entityId: string | number, details: string) {
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        await fetch("/api/admin/audit-logs", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+                action,
+                entityType: "product",
+                entityId,
+                details,
+            }),
+        });
+    } catch (err) {
+        console.error("Failed to log action:", err);
+    }
 }
 
 function calculateTotalStock(sizes: ProductSizes, colors: ProductColorVariant[]): number {
@@ -69,7 +93,6 @@ export async function fetchProducts(): Promise<Product[]> {
         console.error("Error fetching products:", error);
         throw error;
     }
-
     return (data as SupabaseProduct[]).map(toProduct);
 }
 
@@ -94,8 +117,8 @@ export async function addProductToDB(product: Omit<Product, "id">): Promise<Prod
             sizes,
             colors,
             is_deleted: false,
-            meta_title: product.metaTitle || null,       // ✅ جديد
-            meta_description: product.metaDescription || null, // ✅ جديد
+            meta_title: product.metaTitle || null,
+            meta_description: product.metaDescription || null,
         })
         .select()
         .single();
@@ -105,12 +128,15 @@ export async function addProductToDB(product: Omit<Product, "id">): Promise<Prod
         throw error;
     }
 
-    return toProduct(data as SupabaseProduct);
+    const newProduct = toProduct(data as SupabaseProduct);
+    // ✅ تسجيل إضافة المنتج
+    await logAction("إضافة منتج جديد", newProduct.id, `تم إضافة المنتج "${newProduct.name}"`);
+
+    return newProduct;
 }
 
 export async function updateProductInDB(id: number, updates: Partial<Product>): Promise<Product> {
     const dbUpdates: Record<string, unknown> = {};
-
     if (updates.name !== undefined) dbUpdates.name = updates.name;
     if (updates.nameEn !== undefined) dbUpdates.name_en = updates.nameEn;
     if (updates.price !== undefined) dbUpdates.price = updates.price;
@@ -120,11 +146,8 @@ export async function updateProductInDB(id: number, updates: Partial<Product>): 
     if (updates.category !== undefined) dbUpdates.category = updates.category;
     if (updates.description !== undefined) dbUpdates.description = updates.description;
     if (updates.isFeatured !== undefined) dbUpdates.is_featured = updates.isFeatured;
-
-    // ✅ الحقول الجديدة
     if (updates.metaTitle !== undefined) dbUpdates.meta_title = updates.metaTitle;
     if (updates.metaDescription !== undefined) dbUpdates.meta_description = updates.metaDescription;
-
     if (updates.sizes !== undefined) dbUpdates.sizes = updates.sizes;
     if (updates.colors !== undefined) dbUpdates.colors = updates.colors;
 
@@ -146,10 +169,17 @@ export async function updateProductInDB(id: number, updates: Partial<Product>): 
         throw error;
     }
 
-    return toProduct(data as SupabaseProduct);
+    const updatedProduct = toProduct(data as SupabaseProduct);
+    // ✅ تسجيل تعديل المنتج
+    await logAction("تعديل منتج", updatedProduct.id, `تم تعديل بيانات المنتج "${updatedProduct.name}"`);
+
+    return updatedProduct;
 }
 
 export async function deleteProductFromDB(id: number): Promise<void> {
+    // بنجيب اسم المنتج الأول عشان نكتبه في السجل
+    const { data: product } = await supabase.from("products").select("name").eq("id", id).single();
+
     const { error } = await supabase
         .from("products")
         .update({ is_deleted: true })
@@ -159,4 +189,7 @@ export async function deleteProductFromDB(id: number): Promise<void> {
         console.error("Error deleting product:", error);
         throw error;
     }
+
+    // ✅ تسجيل حذف المنتج
+    await logAction("حذف منتج", id, `تم حذف المنتج "${product?.name || "غير معروف"}"`);
 }

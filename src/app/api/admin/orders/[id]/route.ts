@@ -1,31 +1,30 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendEmail, buildOrderStatusEmail } from "@/lib/email";
-import { adminRatelimit } from "@/lib/rate-limit"; // ✅ ضفنا الحماية
+import { adminRatelimit } from "@/lib/rate-limit";
+import { logAdminAction } from "@/lib/audit-logger"; // ✅ ضفنا الدالة
 
 type Props = { params: Promise<{ id: string }> };
 
-// دالة التحقق من الأدمن
 async function verifyAdmin(request: Request) {
     const authHeader = request.headers.get("authorization");
     const token = authHeader?.replace("Bearer ", "");
-    if (!token) return false;
+    if (!token) return null;
     const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-    if (error || !user) return false;
+    if (error || !user) return null;
     const { data: adminCheck } = await supabaseAdmin.from("admins").select("user_id").eq("user_id", user.id).maybeSingle();
-    return !!adminCheck;
+    return adminCheck ? user : null;
 }
 
 export async function GET(request: Request, { params }: Props) {
     try {
-        // ✅ تطبيق الحماية
         const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
         const { success } = await adminRatelimit.limit(ip);
         if (!success) return NextResponse.json({ error: "بعت طلبات كتير جداً، استنى دقيقة." }, { status: 429 });
 
         const { id } = await params;
-        const isAdmin = await verifyAdmin(request);
-        if (!isAdmin) return NextResponse.json({ error: "مش مسموحلك" }, { status: 403 });
+        const user = await verifyAdmin(request);
+        if (!user) return NextResponse.json({ error: "مش مسموحلك" }, { status: 403 });
 
         const { data: order, error } = await supabaseAdmin.from("orders").select("*").eq("id", Number(id)).single();
         if (error || !order) return NextResponse.json({ error: "الطلب غير موجود" }, { status: 404 });
@@ -41,7 +40,6 @@ type OrderStatus = (typeof VALID_STATUSES)[number];
 
 export async function PATCH(request: Request, { params }: Props) {
     try {
-        // ✅ تطبيق الحماية
         const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
         const { success } = await adminRatelimit.limit(ip);
         if (!success) return NextResponse.json({ error: "بعت طلبات كتير جداً، استنى دقيقة." }, { status: 429 });
@@ -50,8 +48,8 @@ export async function PATCH(request: Request, { params }: Props) {
         const body = await request.json();
         const { status } = body as { status: OrderStatus };
 
-        const isAdmin = await verifyAdmin(request);
-        if (!isAdmin) return NextResponse.json({ error: "مش مسموحلك" }, { status: 403 });
+        const user = await verifyAdmin(request);
+        if (!user) return NextResponse.json({ error: "مش مسموحلك" }, { status: 403 });
 
         if (!status || !VALID_STATUSES.includes(status)) {
             return NextResponse.json({ error: "حالة غير صحيحة" }, { status: 400 });
@@ -76,20 +74,27 @@ export async function PATCH(request: Request, { params }: Props) {
                 const hasColors = product?.colors && Array.isArray(product.colors) && product.colors.length > 0;
 
                 if (status === "cancelled" && oldStatus !== "cancelled") {
-                    // إرجاع المخزون
                     if (hasColors) await supabaseAdmin.rpc("increase_product_color_stock", { p_product_id: item.productId, p_color_name: item.color, p_size: item.size, p_quantity: item.quantity });
                     else await supabaseAdmin.rpc("increase_product_size_stock", { p_product_id: item.productId, p_size: item.size, p_quantity: item.quantity });
                 } else if (oldStatus === "cancelled" && status !== "cancelled") {
-                    // خصم المخزون تاني
                     if (hasColors) await supabaseAdmin.rpc("decrease_product_color_stock", { p_product_id: item.productId, p_color_name: item.color, p_size: item.size, p_quantity: item.quantity });
                     else await supabaseAdmin.rpc("decrease_product_size_stock", { p_product_id: item.productId, p_size: item.size, p_quantity: item.quantity });
                 }
             }
         }
 
-        // تحديث حالة الطلب
         const { error: updateError } = await supabaseAdmin.from("orders").update({ status }).eq("id", Number(id));
         if (updateError) return NextResponse.json({ error: "فشل تحديث الطلب" }, { status: 500 });
+
+        // ✅ تسجيل الحركة في سجل النشاط
+        await logAdminAction({
+            adminId: user.id,
+            adminEmail: user.email || "unknown",
+            action: "تحديث حالة الطلب",
+            entityType: "order",
+            entityId: id,
+            details: `تم تغيير الحالة من "${oldStatus}" إلى "${status}" للطلب ${currentOrder.order_number}`,
+        });
 
         // إرسال إيميل للعميل
         if (currentOrder.user_email) {

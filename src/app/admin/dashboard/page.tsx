@@ -155,6 +155,10 @@ export default function DashboardPage() {
                     <h3 className="text-sm md:text-base font-bold text-charcoal mb-1 md:mb-2 group-hover:text-gold transition-colors">الإعدادات</h3>
                     <p className="text-xs text-muted">أمان الحساب</p>
                 </Link>
+                <Link href="/admin/dashboard/audit-logs" className="group bg-white rounded-xl border border-charcoal/10 hover:border-gold p-4 md:p-6 transition-all hover:shadow-lg animate-fade-up flex flex-col justify-between" style={{ animationDelay: "800ms" }}>
+                    <h3 className="text-sm md:text-base font-bold text-charcoal mb-1 md:mb-2 group-hover:text-gold transition-colors">سجل النشاط</h3>
+                    <p className="text-xs text-muted">مراقبة حركات الأدمن</p>
+                </Link>
             </div>
         </div>
     );
