@@ -2,35 +2,26 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendEmail, buildContactEmail } from "@/lib/email";
 import { randomBytes } from "crypto";
-
-// ===== Rate Limiting (in-memory) =====
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 3;
-const ONE_HOUR = 60 * 60 * 1000;
-
-function checkRateLimit(key: string): { allowed: boolean; resetIn?: number } {
-    const now = Date.now();
-    const record = rateLimitMap.get(key);
-
-    if (!record || now > record.resetAt) {
-        rateLimitMap.set(key, { count: 1, resetAt: now + ONE_HOUR });
-        return { allowed: true };
-    }
-
-    if (record.count >= RATE_LIMIT) {
-        return { allowed: false, resetIn: record.resetAt - now };
-    }
-
-    record.count++;
-    return { allowed: true };
-}
+import { contactRatelimit } from "@/lib/rate-limit"; // ✅ الحماية الجديدة
 
 // ===== POST: إرسال رسالة =====
 export async function POST(request: Request) {
     try {
+        // ✅ تطبيق الحماية بـ Upstash (بدل الـ Map القديمة)
+        const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
+        const { success } = await contactRatelimit.limit(ip);
+
+        if (!success) {
+            return NextResponse.json(
+                { error: "بعت رسائل كتير جداً. استنى ساعة وجرب تاني." },
+                { status: 429 }
+            );
+        }
+
         const body = await request.json();
         const { name, email, message, honeypot } = body;
 
+        // 🐝 Honeypot
         if (honeypot && honeypot.trim() !== "") {
             return NextResponse.json({ success: true });
         }
@@ -56,15 +47,7 @@ export async function POST(request: Request) {
         const cleanEmail = email.trim().toLowerCase();
         const cleanMessage = message.trim();
 
-        const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
-        const rateKey = `contact:${ip}`;
-        const rate = checkRateLimit(rateKey);
-
-        if (!rate.allowed) {
-            const minutes = Math.ceil((rate.resetIn || 0) / 60000);
-            return NextResponse.json({ error: `بعتّ رسائل كتير. استنى ${minutes} دقيقة وجرب تاني.` }, { status: 429 });
-        }
-
+        // ✅ نشوف: هل المستخدم مسجل دخول؟
         const authHeader = request.headers.get("authorization");
         const token = authHeader?.replace("Bearer ", "");
 
@@ -90,6 +73,7 @@ export async function POST(request: Request) {
             verificationToken = randomBytes(32).toString("hex");
         }
 
+        // حفظ الرسالة
         const { data: insertedMessage, error } = await supabaseAdmin
             .from("contact_messages")
             .insert({
@@ -110,6 +94,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "فشل إرسال الرسالة" }, { status: 500 });
         }
 
+        // 📧 لو مسجل → نبعتلك (الأدمن) على طول
         if (isVerified) {
             try {
                 const adminEmail = process.env.BREVO_ADMIN_EMAIL;
@@ -128,6 +113,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: true, requiresVerification: false });
         }
 
+        // 📧 لو مش مسجل → نبعتله لينك تأكيد
         try {
             const verifyUrl = `${new URL(request.url).origin}/contact/verify?token=${verificationToken}`;
             await sendEmail({
@@ -179,7 +165,7 @@ export async function GET(request: Request) {
     }
 }
 
-// ✅ PATCH: تحديث حالة الرسالة لمقروءة
+// ===== PATCH: تحديث حالة الرسالة لمقروءة =====
 export async function PATCH(request: Request) {
     try {
         const authHeader = request.headers.get("authorization");
@@ -215,6 +201,7 @@ export async function PATCH(request: Request) {
     }
 }
 
+// ===== قالب إيميل التأكيد (للزوار) =====
 function buildVerificationEmail(data: { name: string; message: string; verifyUrl: string; }): string {
     return `
 <!DOCTYPE html>

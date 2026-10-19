@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { randomUUID } from "crypto";
-import sharp from "sharp"; // ✅ ضفنا مكتبة الضغط
+import sharp from "sharp";
+import { fileTypeFromBuffer } from "file-type"; // ✅ ضفنا مكتبة الفحص
 
 export async function POST(request: Request) {
     try {
@@ -25,37 +26,43 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "مفيش صورة مرفقة" }, { status: 400 });
         }
 
-        // التحقق من حجم الصورة (بحد أقصى 5 ميجا)
         if (file.size > 5 * 1024 * 1024) {
             return NextResponse.json({ error: "حجم الصورة كبير جداً (الأقصى 5 ميجا)" }, { status: 400 });
         }
 
-        if (!file.type.startsWith("image/")) {
-            return NextResponse.json({ error: "الملف لازم يكون صورة" }, { status: 400 });
-        }
-
-        // 3. ضغط الصورة باستخدام sharp
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
+        // ✅ 3. فحص البصمة الرقمية للملف (File Signature)
+        const type = await fileTypeFromBuffer(buffer);
+        const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+        if (!type || !allowedTypes.includes(type.mime)) {
+            return NextResponse.json(
+                { error: "الملف المرفوع غير آمن أو ليس صورة حقيقية" },
+                { status: 400 }
+            );
+        }
+
+        // 4. ضغط الصورة باستخدام sharp
         let compressedBuffer;
         try {
             compressedBuffer = await sharp(buffer)
-                .resize({ width: 1000, withoutEnlargement: true }) // تصغير العرض لـ 1000 بكسل كحد أقصى
-                .webp({ quality: 80 }) // تحويل لصيغة webp عالية الجودة وخفيفة
+                .resize({ width: 1000, withoutEnlargement: true })
+                .webp({ quality: 80 })
                 .toBuffer();
         } catch (sharpError) {
             console.error("Sharp compression error:", sharpError);
             return NextResponse.json({ error: "فشل معالجة الصورة، تأكد من صحة الملف" }, { status: 400 });
         }
 
-        // 4. رفع الصورة المضغوطة على Supabase Storage
-        const fileName = `${randomUUID()}.webp`; // بنحفظها دايماً webp
+        // 5. رفع الصورة المضغوطة
+        const fileName = `${randomUUID()}.webp`;
 
-        const { data, error } = await supabaseAdmin.storage
+        const { error } = await supabaseAdmin.storage
             .from("products")
             .upload(fileName, compressedBuffer, {
-                contentType: "image/webp", // نوع الملف بقى webp
+                contentType: "image/webp",
                 upsert: false,
             });
 
@@ -64,7 +71,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "فشل رفع الصورة" }, { status: 500 });
         }
 
-        // 5. نرجع الرابط النهائي للصورة
         const { data: { publicUrl } } = supabaseAdmin.storage
             .from("products")
             .getPublicUrl(fileName);

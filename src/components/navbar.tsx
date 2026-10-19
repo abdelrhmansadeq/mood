@@ -5,7 +5,8 @@ import { useState } from "react";
 import CartIcon from "./cart-icon";
 import WishlistIcon from "./wishlist-icon";
 import UserMenu from "./user-menu";
-import ThemeToggle from "./theme-toggle"; // ✅ ضفنا استدعاء زرار الدارك مود
+import ThemeToggle from "./theme-toggle";
+import CommandMenu from "./command-menu"; // ✅ ضفنا المكون
 
 export default function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
@@ -19,6 +20,9 @@ export default function Navbar() {
 
     return (
         <header className="fixed top-0 inset-x-0 z-50">
+            {/* ✅ المكون هنا عشان يشتغل في الخلفية */}
+            <CommandMenu />
+
             {/* Top Bar */}
             <div className="bg-charcoal text-cream text-xs py-2 text-center">
                 🚚 شحن مجاني للطلبات أكثر من 500 ج.م
@@ -54,9 +58,27 @@ export default function Navbar() {
 
                         {/* Right Side Icons */}
                         <div className="flex items-center gap-3 sm:gap-4">
-                            {/* ✅ حطينا زرار الدارك مود هنا */}
-                            <ThemeToggle />
 
+                            {/* ✅ زرار البحث الجديد */}
+                            <button
+                                onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
+                                className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border border-charcoal/15 hover:border-gold text-muted hover:text-charcoal transition-colors text-sm bg-white"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                                <span>بحث...</span>
+                                <kbd className="font-sans text-[10px] bg-charcoal/5 px-1.5 py-0.5 rounded">⌘K</kbd>
+                            </button>
+
+                            {/* زرار بحث للموبايل */}
+                            <button
+                                onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
+                                className="md:hidden p-2 text-charcoal"
+                                aria-label="Search"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                            </button>
+
+                            <ThemeToggle />
                             <UserMenu />
                             <WishlistIcon />
                             <CartIcon />

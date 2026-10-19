@@ -155,9 +155,9 @@ export default function AdminOrdersPage() {
                                     <div className="flex flex-wrap items-center gap-4">
                                         <div>
                                             <p className="text-xs text-muted mb-1">رقم الطلب</p>
-                                            <p className="text-sm font-bold text-gold">
+                                            <Link href={`/admin/dashboard/orders/${order.id}`} className="text-sm font-bold text-gold hover:underline">
                                                 {order.orderNumber}
-                                            </p>
+                                            </Link>
                                         </div>
                                         <div>
                                             <p className="text-xs text-muted mb-1">التاريخ</p>

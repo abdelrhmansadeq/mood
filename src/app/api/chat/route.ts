@@ -1,33 +1,19 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { chatRatelimit } from "@/lib/rate-limit"; // ✅ ضفنا الحماية
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 15;
-const ONE_MINUTE = 60 * 1000;
-
-function checkRateLimit(key: string): boolean {
-    const now = Date.now();
-    const record = rateLimitMap.get(key);
-    if (!record || now > record.resetAt) {
-        rateLimitMap.set(key, { count: 1, resetAt: now + ONE_MINUTE });
-        return true;
-    }
-    if (record.count >= RATE_LIMIT) return false;
-    record.count++;
-    return true;
-}
-
 export async function POST(request: Request) {
     try {
+        // ✅ تطبيق الحماية
         const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-        if (!checkRateLimit(ip)) {
-            return NextResponse.json({ error: "بعت رسائل كتير، استنى شوية." }, { status: 429 });
+        const { success } = await chatRatelimit.limit(ip);
+        if (!success) {
+            return NextResponse.json({ error: "بعت رسائل كتير جداً، استنى دقيقة وجرب تاني." }, { status: 429 });
         }
 
-        // ✅ استقبال الرسالة الحالية والتاريخ (History)
         const { message, history } = await request.json();
 
         if (!message || typeof message !== "string") {
@@ -41,6 +27,7 @@ export async function POST(request: Request) {
         const { data: products, error: productsError } = await supabaseAdmin
             .from("products")
             .select("id, name, name_en, price, category, description, stock, colors")
+            .neq("is_deleted", true) // ✅ بنجيب المنتجات اللي مش محذوفة
             .gt("stock", 0)
             .limit(40);
 
@@ -63,13 +50,11 @@ export async function POST(request: Request) {
 المنتجات المتاحة:
 ${productList}`;
 
-        // ✅ تجهيز التاريخ لـ Gemini
         const formattedHistory = (history || []).map((msg: { role: string; content: string }) => ({
             role: msg.role === "assistant" ? "model" : "user",
             parts: [{ text: msg.content }]
         }));
 
-        // ✅ إضافة رسالة المستخدم الجديدة في آخر التاريخ
         formattedHistory.push({
             role: "user",
             parts: [{ text: message }]
@@ -79,7 +64,7 @@ ${productList}`;
             model: "gemini-3.6-flash",
             contents: formattedHistory,
             config: {
-                systemInstruction: systemPrompt, // ✅ بنبعت التعليمات هنا عشان ميتلخبطش
+                systemInstruction: systemPrompt,
             }
         });
 

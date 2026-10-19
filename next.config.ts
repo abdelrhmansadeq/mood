@@ -1,15 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // ✅ تجاهل أخطاء الـ ESLint والـ TypeScript أثناء البناء على Vercel
-  // عشان نضمن إن النشر ميفشلش بسبب تحذيرات بسيطة
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-
   images: {
     remotePatterns: [
       {
@@ -27,7 +18,7 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // ✅ إعدادات مكتبة sharp للصورة (مهمة جداً عشان Vercel ميعملش مشاكل معاها)
+  // ✅ إعدادات مكتبة sharp عشان تشتغل على Vercel
   serverExternalPackages: ["sharp"],
 };
 
