@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { sendEmail, buildAbandonedCartEmail } from "@/lib/email";
 
+//export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
     try {
         // ✅ 1. تأمين المسار (عشان محدش يفتحه من المتصفح)
