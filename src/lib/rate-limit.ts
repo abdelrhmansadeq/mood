@@ -1,10 +1,9 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
-// تهيئة الاتصال بـ Upstash Redis
 const redis = new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL!,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+    url: (process.env.UPSTASH_REDIS_REST_URL || "").trim(),
+    token: (process.env.UPSTASH_REDIS_REST_TOKEN || "").trim(),
 });
 
 // 🛡️ 1. حماية شات الـ AI (15 رسالة في الدقيقة)
@@ -23,10 +22,18 @@ export const contactRatelimit = new Ratelimit({
     prefix: "mood:contact",
 });
 
-// 🛡️ 3. حماية إنشاء الطلبات (10 طلبات في الساعة عشان نمنع السبام)
+// 🛡️ 3. حماية إنشاء الطلبات (10 طلبات في الساعة)
 export const orderRatelimit = new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(10, "1 h"),
     analytics: true,
     prefix: "mood:order",
+});
+
+// 🛡️ 4. حماية مسارات الأدمن (30 طلب في الدقيقة)
+export const adminRatelimit = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(30, "1 m"),
+    analytics: true,
+    prefix: "mood:admin",
 });
