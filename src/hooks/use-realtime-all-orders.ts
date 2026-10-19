@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useId } from "react";
 import { supabase } from "@/lib/supabase";
 
 type RealtimeEvent = {
@@ -11,10 +11,14 @@ type RealtimeEvent = {
 
 export function useRealtimeAllOrders(): RealtimeEvent | null {
     const [lastEvent, setLastEvent] = useState<RealtimeEvent | null>(null);
+    // ✅ بنعمل ID فريد لكل قناة عشان نمنع تعارض الـ subscribe
+    const uniqueId = useId().replace(/:/g, "");
 
     useEffect(() => {
-        const channel = supabase
-            .channel("admin-all-orders")
+        const channelName = `admin-all-orders-${uniqueId}`;
+        const channel = supabase.channel(channelName);
+
+        channel
             .on(
                 "postgres_changes",
                 {
@@ -39,9 +43,9 @@ export function useRealtimeAllOrders(): RealtimeEvent | null {
             .subscribe();
 
         return () => {
-            supabase.removeChannel(channel);
+            void supabase.removeChannel(channel);
         };
-    }, []);
+    }, [uniqueId]);
 
     return lastEvent;
 }

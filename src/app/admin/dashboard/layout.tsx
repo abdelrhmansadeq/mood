@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAdmin } from "@/components/admin-context";
+import AdminHeader from "@/components/admin-header"; // ✅ ضفنا الهيدر
 
 export default function DashboardLayout({
                                             children,
@@ -28,5 +29,15 @@ export default function DashboardLayout({
 
     if (!isLoggedIn) return null;
 
-    return <>{children}</>;
+    return (
+        <div className="min-h-screen bg-cream flex flex-col">
+            {/* ✅ الجرس هنا فوق */}
+            <AdminHeader />
+
+            {/* محتوى الصفحة */}
+            <div className="flex-1">
+                {children}
+            </div>
+        </div>
+    );
 }

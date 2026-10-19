@@ -105,14 +105,12 @@ export default function ProductDetail({ product, related }: Props) {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 mb-20">
                 <div className="animate-fade-in">
                     <div className="relative w-full rounded-lg overflow-hidden bg-cream group cursor-zoom-in" style={{ aspectRatio: "3 / 4" }}>
-                        {/* ✅ ضفنا الـ Blur للصورة الرئيسية */}
+                        {/* ✅ ضفنا sizes هنا */}
                         <Image
                             src={selectedImage}
                             alt={product.name}
                             fill
                             sizes="(max-width: 1024px) 100vw, 50vw"
-                            placeholder="blur"
-                            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
                             className={`object-cover animate-fade-in transition-transform duration-500 group-hover:scale-125 ${isOutOfStock ? "opacity-50" : ""}`}
                         />
                         {hasSale && !isOutOfStock && <div className="absolute top-4 left-4 bg-error text-white text-sm font-bold px-3 py-1.5 rounded-full z-10">خصم {discountPercent}%</div>}
@@ -123,6 +121,7 @@ export default function ProductDetail({ product, related }: Props) {
                         <div className="mt-3 flex gap-2 overflow-x-auto pb-2">
                             {galleryImages.map((img, idx) => (
                                 <button key={`${img}-${idx}`} onClick={() => setSelectedImage(img)} className={`relative w-16 h-20 md:w-20 md:h-24 rounded-md overflow-hidden flex-shrink-0 border-2 transition-all ${selectedImage === img ? "border-gold" : "border-charcoal/10 hover:border-charcoal/40"}`}>
+                                    {/* ✅ ضفنا sizes هنا */}
                                     <Image src={img} alt={`${product.name} - صورة ${idx + 1}`} fill sizes="80px" className="object-cover" />
                                 </button>
                             ))}
@@ -240,8 +239,8 @@ export default function ProductDetail({ product, related }: Props) {
                             <div key={p.id} className="animate-fade-up opacity-0" style={{ animationDelay: `${idx * 80}ms`, animationFillMode: "forwards" }}>
                                 <Link href={`/products/${p.id}`} className="group block bg-white rounded-lg overflow-hidden border border-charcoal/5 hover:border-gold/30 transition-all hover:shadow-lg">
                                     <div className="relative w-full aspect-[3/4] overflow-hidden bg-cream">
-                                        {/* ✅ ضفنا Blur للمنتجات المشابهة */}
-                                        <Image src={p.image} alt={p.name} fill sizes="(max-width: 768px) 50vw, 25vw" placeholder="blur" blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        {/* ✅ ضفنا sizes هنا */}
+                                        <Image src={p.image} alt={p.name} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
                                     </div>
                                     <div className="p-3 md:p-4">
                                         <h3 className="text-xs md:text-sm font-medium text-charcoal mb-1 group-hover:text-gold transition-colors">{p.name}</h3>
