@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useAdmin } from "@/components/admin-context";
 import { useProducts } from "@/components/products-context";
 import { useToast } from "@/components/toast-context";
-import { supabase } from "@/lib/supabase"; // ✅ محتاجينها عشان نجيب التوكن
+import { supabase } from "@/lib/supabase";
 import {
     ALL_CATEGORIES,
     getCategoryLabel,
@@ -28,6 +28,8 @@ type FormData = {
     images: string[];
     category: ProductCategory;
     description: string;
+    metaTitle: string;       // ✅ جديد
+    metaDescription: string; // ✅ جديد
     isFeatured: boolean;
     sizes: ProductSizes;
     colors: ProductColorVariant[];
@@ -44,6 +46,8 @@ const emptyForm: FormData = {
     images: [],
     category: "men",
     description: "",
+    metaTitle: "",       // ✅ جديد
+    metaDescription: "", // ✅ جديد
     isFeatured: false,
     sizes: { ...emptySizes },
     colors: [],
@@ -73,7 +77,7 @@ export default function AdminProductsPage() {
     const [editingId, setEditingId] = useState<number | null>(null);
     const [formData, setFormData] = useState<FormData>(emptyForm);
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
-    const [uploadingField, setUploadingField] = useState<string | null>(null); // ✅ تتبع الصورة اللي بتترفع
+    const [uploadingField, setUploadingField] = useState<string | null>(null);
 
     useEffect(() => {
         if (!isLoggedIn) router.push("/admin");
@@ -101,6 +105,8 @@ export default function AdminProductsPage() {
             images: product.images || [],
             category: product.category,
             description: product.description,
+            metaTitle: product.metaTitle || "",       // ✅ جديد
+            metaDescription: product.metaDescription || "", // ✅ جديد
             isFeatured: product.isFeatured || false,
             sizes: product.sizes || { ...emptySizes },
             colors: product.colors || [],
@@ -125,7 +131,6 @@ export default function AdminProductsPage() {
         setFormData({ ...formData, sizes: { ...formData.sizes, [size]: Math.max(0, value) } });
     };
 
-    // ✅ دالة رفع الصور (بتستخدم في كل الأماكن)
     const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>, field: string, colorIndex?: number) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -164,7 +169,6 @@ export default function AdminProductsPage() {
 
             showToast("تم رفع الصورة بنجاح", "success");
         } catch (err) {
-            // ✅ هنا التعديل اللي هيشيل الخطوط الحمراء
             const errorMessage = err instanceof Error ? err.message : "حصلت مشكلة أثناء رفع الصورة";
             showToast(errorMessage, "error");
         } finally {
@@ -482,6 +486,25 @@ export default function AdminProductsPage() {
                                 <div>
                                     <label className="block text-sm font-medium text-charcoal mb-2">الوصف *</label>
                                     <textarea name="description" required rows={3} value={formData.description} onChange={handleChange} className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm focus:outline-none focus:border-gold resize-none" />
+                                </div>
+
+                                {/* ✅ قسم الـ SEO الجديد */}
+                                <div className="border-t border-charcoal/10 pt-5">
+                                    <h3 className="text-sm font-bold text-charcoal mb-4">إعدادات محركات البحث (SEO)</h3>
+
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-charcoal mb-2">عنوان الصفحة (Meta Title)</label>
+                                            <input type="text" name="metaTitle" value={formData.metaTitle} onChange={handleChange} placeholder={formData.name || "اسم المنتج في جوجل"} className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm focus:outline-none focus:border-gold" />
+                                            <p className="text-xs text-muted mt-1">لو سيبته فاضي، هيستخدم اسم المنتج تلقائياً.</p>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-charcoal mb-2">وصف الصفحة (Meta Description)</label>
+                                            <textarea name="metaDescription" value={formData.metaDescription} onChange={handleChange} placeholder={formData.description || "وصف المنتج في جوجل"} rows={2} className="w-full px-4 py-3 rounded-md border border-charcoal/15 bg-white text-sm focus:outline-none focus:border-gold resize-none" />
+                                            <p className="text-xs text-muted mt-1">لو سيبته فاضي، هيستخدم وصف المنتج تلقائياً.</p>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Colors Section */}

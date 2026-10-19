@@ -39,6 +39,8 @@ export type Product = {
     avgRating?: number;
     reviewsCount?: number;
     soldCount?: number;
+    metaTitle?: string | null;
+    metaDescription?: string | null;
 };
 
 // ✅ قايمة الفئات بالعربي

@@ -13,7 +13,8 @@ export async function generateMetadata({ params }: Props) {
 
     const { data: product } = await supabase
         .from("products")
-        .select("name, description, image")
+        // ✅ ضفنا الحقول الجديدة هنا عشان الـ SEO يقراها
+        .select("name, description, image, meta_title, meta_description")
         .eq("id", Number(id))
         .single();
 
@@ -21,12 +22,17 @@ export async function generateMetadata({ params }: Props) {
         return { title: "المنتج غير موجود - Mood" };
     }
 
+    // ✅ بنستخدم الـ Meta Title لو موجود، أو اسم المنتج
+    const title = product.meta_title || `${product.name} - Mood`;
+    // ✅ بنستخدم الـ Meta Description لو موجود، أو الوصف العادي
+    const description = product.meta_description || product.description || `تسوق ${product.name} من متجر Mood بأفضل الأسعار.`;
+
     return {
-        title: `${product.name} - Mood`,
-        description: product.description || `تسوق ${product.name} من متجر Mood بأفضل الأسعار.`,
+        title: title,
+        description: description,
         openGraph: {
-            title: `${product.name} - Mood`,
-            description: product.description,
+            title: title,
+            description: description,
             images: product.image ? [{ url: product.image }] : [],
         },
     };
@@ -59,12 +65,15 @@ export default async function ProductPage({ params }: Props) {
     const productPrice = product.sale_price || product.price;
     const isAvailable = product.stock > 0;
 
+    // ✅ بنستخدم الوصف بتاع الـ SEO في البيانات المنظمة لو موجود
+    const jsonLdDescription = product.meta_description || product.description;
+
     const jsonLd = {
         "@context": "https://schema.org",
         "@type": "Product",
         name: product.name,
         image: product.image,
-        description: product.description,
+        description: jsonLdDescription,
         sku: product.id.toString(),
         offers: {
             "@type": "Offer",

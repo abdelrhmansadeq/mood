@@ -18,7 +18,9 @@ type SupabaseProduct = {
     avg_rating: number | null;
     reviews_count: number | null;
     sold_count: number | null;
-    is_deleted: boolean | null; // ✅ ضفنا الحقل ده
+    meta_title: string | null;       // ✅ جديد
+    meta_description: string | null; // ✅ جديد
+    is_deleted: boolean | null;
     created_at: string;
 };
 
@@ -42,19 +44,15 @@ function toProduct(row: SupabaseProduct): Product {
         avgRating: row.avg_rating ? Number(row.avg_rating) : 0,
         reviewsCount: row.reviews_count || 0,
         soldCount: row.sold_count || 0,
+        metaTitle: row.meta_title || null,       // ✅ جديد
+        metaDescription: row.meta_description || null, // ✅ جديد
     };
 }
 
-function calculateTotalStock(
-    sizes: ProductSizes,
-    colors: ProductColorVariant[]
-): number {
+function calculateTotalStock(sizes: ProductSizes, colors: ProductColorVariant[]): number {
     if (colors && colors.length > 0) {
         return colors.reduce((total, color) => {
-            return (
-                total +
-                Object.values(color.sizes || defaultSizes).reduce((a, b) => a + b, 0)
-            );
+            return total + Object.values(color.sizes || defaultSizes).reduce((a, b) => a + b, 0);
         }, 0);
     }
     return Object.values(sizes || defaultSizes).reduce((a, b) => a + b, 0);
@@ -64,7 +62,7 @@ export async function fetchProducts(): Promise<Product[]> {
     const { data, error } = await supabase
         .from("products")
         .select("*")
-        .neq("is_deleted", true) // ✅ بنجيب المنتجات اللي مش محذوفة بس
+        .neq("is_deleted", true)
         .order("id", { ascending: true });
 
     if (error) {
@@ -75,9 +73,7 @@ export async function fetchProducts(): Promise<Product[]> {
     return (data as SupabaseProduct[]).map(toProduct);
 }
 
-export async function addProductToDB(
-    product: Omit<Product, "id">
-): Promise<Product> {
+export async function addProductToDB(product: Omit<Product, "id">): Promise<Product> {
     const sizes = product.sizes || defaultSizes;
     const colors = product.colors || [];
     const totalStock = calculateTotalStock(sizes, colors);
@@ -97,7 +93,9 @@ export async function addProductToDB(
             stock: totalStock,
             sizes,
             colors,
-            is_deleted: false, // ✅ المنتج الجديد مش محذوف بطبيعة الحال
+            is_deleted: false,
+            meta_title: product.metaTitle || null,       // ✅ جديد
+            meta_description: product.metaDescription || null, // ✅ جديد
         })
         .select()
         .single();
@@ -110,22 +108,22 @@ export async function addProductToDB(
     return toProduct(data as SupabaseProduct);
 }
 
-export async function updateProductInDB(
-    id: number,
-    updates: Partial<Product>
-): Promise<Product> {
+export async function updateProductInDB(id: number, updates: Partial<Product>): Promise<Product> {
     const dbUpdates: Record<string, unknown> = {};
+
     if (updates.name !== undefined) dbUpdates.name = updates.name;
     if (updates.nameEn !== undefined) dbUpdates.name_en = updates.nameEn;
     if (updates.price !== undefined) dbUpdates.price = updates.price;
-    if (updates.salePrice !== undefined)
-        dbUpdates.sale_price = updates.salePrice;
+    if (updates.salePrice !== undefined) dbUpdates.sale_price = updates.salePrice;
     if (updates.image !== undefined) dbUpdates.image = updates.image;
     if (updates.images !== undefined) dbUpdates.images = updates.images;
     if (updates.category !== undefined) dbUpdates.category = updates.category;
-    if (updates.description !== undefined)
-        dbUpdates.description = updates.description;
+    if (updates.description !== undefined) dbUpdates.description = updates.description;
     if (updates.isFeatured !== undefined) dbUpdates.is_featured = updates.isFeatured;
+
+    // ✅ الحقول الجديدة
+    if (updates.metaTitle !== undefined) dbUpdates.meta_title = updates.metaTitle;
+    if (updates.metaDescription !== undefined) dbUpdates.meta_description = updates.metaDescription;
 
     if (updates.sizes !== undefined) dbUpdates.sizes = updates.sizes;
     if (updates.colors !== undefined) dbUpdates.colors = updates.colors;
@@ -152,7 +150,6 @@ export async function updateProductInDB(
 }
 
 export async function deleteProductFromDB(id: number): Promise<void> {
-    // ✅ بدل ما نمسح المنتج نهائي، بنعمله Soft Delete (أرشفة)
     const { error } = await supabase
         .from("products")
         .update({ is_deleted: true })
