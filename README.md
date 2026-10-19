@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+*   Advanced Rate Limiting: API endpoints (Chat, Orders, Contact) and Admin routes are protected by Upstash Redis to prevent DoS attacks.
+*   File Upload Security: Binary signature validation (file-type) to prevent malicious file uploads, plus automatic image compression using Sharp.
+*   Error Monitoring: Real-time error tracking and performance tracing via Sentry.
+*   Security Headers: Implemented X-Frame-Options, X-Content-Type-Options, and Permissions-Policy in next.config.ts.
 
-## Getting Started
+---
 
-First, run the development server:
+## 🛠️ Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+*   Framework: Next.js 16 (App Router, Server Components)
+*   Language: TypeScript
+*   Styling: Tailwind CSS, Framer Motion
+*   Database & Auth: Supabase (PostgreSQL)
+*   AI Integration: Google Gemini AI (@google/genai)
+*   Email Service: Brevo
+*   Rate Limiting: Upstash Redis
+*   Error Tracking: Sentry
+*   Image Processing: Sharp
+*   Deployment: Vercel
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🚀 Getting Started
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+To run this project locally, follow these steps:
 
-## Learn More
+1.  Clone the repository:
 
-To learn more about Next.js, take a look at the following resources:
+    git clone https://github.com/abdelrhmansadeq/mood.git
+    cd mood
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+2.  Install dependencies:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+    npm install
 
-## Deploy on Vercel
+3.  Set up Environment Variables:
+    Create a .env.local file in the root directory and add the following keys:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+    # Supabase
+    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+    SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+    # AI & Emails
+    GEMINI_API_KEY=your_gemini_api_key
+    BREVO_API_KEY=your_brevo_api_key
+    BREVO_SENDER_EMAIL=your_email
+    BREVO_SENDER_NAME="Mood"
+    BREVO_ADMIN_EMAIL=admin_email
+
+    # Security & Rate Limiting
+    UPSTASH_REDIS_REST_URL=your_upstash_url
+    UPSTASH_REDIS_REST_TOKEN=your_upstash_token
+    CRON_SECRET=your_cron_secret
+
+    # Monitoring
+    NEXT_PUBLIC_SENTRY_DSN=your_sentry_dsn
+
+4.  Run the development server:
+
+    npm run dev
+
+5.  Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+<div align="center">
+  <b>Built with ❤️ by <a href="https://github.com/abdelrhmansadeq">Abdelrhman Sadeq</a></b>
+</div>
