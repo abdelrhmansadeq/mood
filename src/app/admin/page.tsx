@@ -24,13 +24,27 @@ export default function AdminLoginPage() {
         setError("");
         setIsSubmitting(true);
 
-        const result = await login(email, password);
+        try {
+            // ✅ فحص الحماية أولاً
+            const checkRes = await fetch("/api/admin/login-check", { method: "POST" });
+            if (!checkRes.ok) {
+                const errorData = await checkRes.json();
+                setError(errorData.error || "تم حظر المحاولات مؤقتاً.");
+                setIsSubmitting(false);
+                return;
+            }
 
-        if (result.error) {
-            setError(result.error);
+            const result = await login(email, password);
+
+            if (result.error) {
+                setError(result.error);
+                setIsSubmitting(false);
+            } else {
+                router.push("/admin/dashboard");
+            }
+        } catch (err) {
+            setError("حصلت مشكلة في الاتصال بالسيرفر.");
             setIsSubmitting(false);
-        } else {
-            router.push("/admin/dashboard");
         }
     };
 
@@ -52,19 +66,11 @@ export default function AdminLoginPage() {
                     <h1 className="text-3xl font-bold text-charcoal mb-2">
                         تسجيل دخول الأدمن
                     </h1>
-                    <p className="text-muted text-sm">
-                        لوحة التحكم في متجر Mood
-                    </p>
                 </div>
 
-                <form
-                    onSubmit={handleSubmit}
-                    className="bg-white rounded-lg border border-charcoal/10 p-6 space-y-5"
-                >
+                <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-charcoal/10 p-6 space-y-5">
                     <div>
-                        <label className="block text-sm font-medium text-charcoal mb-2">
-                            الإيميل
-                        </label>
+                        <label className="block text-sm font-medium text-charcoal mb-2">الإيميل</label>
                         <input
                             type="email"
                             required
@@ -76,9 +82,7 @@ export default function AdminLoginPage() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-charcoal mb-2">
-                            الباسورد
-                        </label>
+                        <label className="block text-sm font-medium text-charcoal mb-2">الباسورد</label>
                         <input
                             type="password"
                             required
@@ -90,7 +94,7 @@ export default function AdminLoginPage() {
                     </div>
 
                     {error && (
-                        <div className="bg-error/10 text-error border border-error/30 rounded-md p-3 text-sm">
+                        <div className="bg-error/10 text-error border border-error/30 rounded-md p-3 text-sm font-medium">
                             {error}
                         </div>
                     )}

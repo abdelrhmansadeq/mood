@@ -37,3 +37,11 @@ export const adminRatelimit = new Ratelimit({
     analytics: true,
     prefix: "mood:admin",
 });
+
+// 🛡️ 5. حماية تسجيل دخول الأدمن (5 محاولات كل 15 دقيقة)
+export const loginRatelimit = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(5, "15 m"),
+    analytics: true,
+    prefix: "mood:admin-login",
+});

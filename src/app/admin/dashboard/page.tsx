@@ -156,6 +156,10 @@ export default function DashboardPage() {
                     <h3 className="text-lg font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors">عرض المتجر</h3>
                     <p className="text-sm text-muted">شوف الموقع من منظور الزائر</p>
                 </Link>
+                <Link href="/admin/dashboard/settings" className="group bg-white rounded-lg border border-charcoal/10 hover:border-gold p-6 transition-all hover:shadow-lg animate-fade-up" style={{ animationDelay: "750ms" }}>
+                    <h3 className="text-lg font-semibold text-charcoal mb-2 group-hover:text-gold transition-colors">إعدادات الحساب</h3>
+                    <p className="text-sm text-muted">تغيير الاسم والباسورد</p>
+                </Link>
             </div>
         </div>
     );
