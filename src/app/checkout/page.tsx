@@ -36,17 +36,13 @@ export default function CheckoutPage() {
     const [orderNumber, setOrderNumber] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState("");
-
-    // ✅ حالة حفظ أخطاء كل حقل على حدة
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-    // ✅ حالات كود الخصم
     const [couponCode, setCouponCode] = useState("");
     const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null);
     const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
     const [couponError, setCouponError] = useState("");
 
-    // ✅ التحقق من المخزون قبل الشحن
     const outOfStockItems = useMemo(() => {
         return items.filter((item) => {
             const product = products.find((p) => p.id === item.productId);
@@ -107,7 +103,6 @@ export default function CheckoutPage() {
         e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
     ) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
-        // ✅ بنمسح الخطأ عن الحقل ده أول ما المستخدم يعدله
         if (fieldErrors[e.target.name]) {
             setFieldErrors(prev => ({ ...prev, [e.target.name]: "" }));
         }
@@ -145,7 +140,7 @@ export default function CheckoutPage() {
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError("");
-        setFieldErrors({}); // مسح الأخطاء القديمة
+        setFieldErrors({});
 
         const checkoutSchema = z.object({
             fullName: z.string().min(3, "الاسم يجب أن يكون 3 أحرف على الأقل"),
@@ -158,7 +153,6 @@ export default function CheckoutPage() {
         const validation = checkoutSchema.safeParse(formData);
 
         if (!validation.success) {
-            // ✅ تجميع أخطاء كل حقل عشان نلون الخانات
             const errors: Record<string, string> = {};
             validation.error.issues.forEach((issue) => {
                 if (issue.path[0]) {
@@ -220,6 +214,37 @@ export default function CheckoutPage() {
         }
     };
 
+    // ✅ دالة إرسال الطلب عبر واتساب
+    const handleWhatsAppOrder = () => {
+        if (!formData.fullName || !formData.phone || !formData.city || !formData.address) {
+            setError("رجاءً املأ بيانات الشحن (الاسم، التليفون، المدينة، العنوان) أولاً.");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            return;
+        }
+
+        const storePhone = "201014766903"; // رقم المتجر
+        let text = `*طلب جديد من متجر Mood*\n\n`;
+        text += `*بيانات العميل:*\n`;
+        text += `👤 الاسم: ${formData.fullName}\n`;
+        text += `📞 التليفون: ${formData.phone}\n`;
+        text += `📍 المدينة: ${formData.city}\n`;
+        text += `🏠 العنوان: ${formData.address}\n`;
+        if (formData.notes) text += `📝 ملاحظات: ${formData.notes}\n`;
+
+        text += `\n*المنتجات:*\n`;
+        items.forEach((item, index) => {
+            text += `${index + 1}. ${item.name} (مقاس: ${item.size}، لون: ${item.color}) - ${item.quantity} × ${item.price} = ${item.quantity * item.price} ج.م\n`;
+        });
+
+        if (appliedCoupon) {
+            text += `\n🎟️ كوبون الخصم: ${appliedCoupon.code} (خصم ${discountAmount} ج.م)`;
+        }
+        text += `\n*الإجمالي النهائي:* ${finalTotal} ج.م`;
+
+        const encodedText = encodeURIComponent(text);
+        window.open(`https://wa.me/${storePhone}?text=${encodedText}`, "_blank");
+    };
+
     if (authLoading) {
         return (
             <div className="min-h-[calc(100vh-6rem)] flex items-center justify-center">
@@ -229,6 +254,7 @@ export default function CheckoutPage() {
     }
 
     if (submitted) {
+        // ... كود صفحة النجاح ...
         return (
             <div className="max-w-2xl mx-auto px-6 py-20 text-center animate-fade-in">
                 <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-6 animate-fade-up">
@@ -291,9 +317,7 @@ export default function CheckoutPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                     <div className="lg:col-span-2 space-y-5">
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-semibold text-charcoal">
-                                بيانات الشحن
-                            </h2>
+                            <h2 className="text-lg font-semibold text-charcoal">بيانات الشحن</h2>
                             {user && (
                                 <Link href="/account" className="text-sm text-gold hover:underline font-medium">
                                     تعديل العنوان المحفوظ
@@ -305,28 +329,16 @@ export default function CheckoutPage() {
                             <div>
                                 <label className="block text-sm font-medium text-charcoal mb-2">الاسم الكامل *</label>
                                 <input
-                                    type="text"
-                                    name="fullName"
-                                    required
-                                    value={formData.fullName}
-                                    onChange={handleChange}
-                                    className={`w-full px-4 py-3 rounded-md border bg-white text-sm transition-colors focus:outline-none ${
-                                        fieldErrors.fullName ? "border-error focus:border-error" : "border-charcoal/15 focus:border-gold"
-                                    }`}
+                                    type="text" name="fullName" required value={formData.fullName} onChange={handleChange}
+                                    className={`w-full px-4 py-3 rounded-md border bg-white text-sm focus:outline-none ${fieldErrors.fullName ? "border-error focus:border-error" : "border-charcoal/15 focus:border-gold"}`}
                                 />
                                 {fieldErrors.fullName && <p className="text-xs text-error mt-1">{fieldErrors.fullName}</p>}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-charcoal mb-2">رقم التليفون *</label>
                                 <input
-                                    type="tel"
-                                    name="phone"
-                                    required
-                                    value={formData.phone}
-                                    onChange={handleChange}
-                                    className={`w-full px-4 py-3 rounded-md border bg-white text-sm transition-colors focus:outline-none ${
-                                        fieldErrors.phone ? "border-error focus:border-error" : "border-charcoal/15 focus:border-gold"
-                                    }`}
+                                    type="tel" name="phone" required value={formData.phone} onChange={handleChange}
+                                    className={`w-full px-4 py-3 rounded-md border bg-white text-sm focus:outline-none ${fieldErrors.phone ? "border-error focus:border-error" : "border-charcoal/15 focus:border-gold"}`}
                                 />
                                 {fieldErrors.phone && <p className="text-xs text-error mt-1">{fieldErrors.phone}</p>}
                             </div>
@@ -335,14 +347,8 @@ export default function CheckoutPage() {
                         <div>
                             <label className="block text-sm font-medium text-charcoal mb-2">الإيميل (اختياري - لتأكيد الطلب)</label>
                             <input
-                                type="email"
-                                name="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                className={`w-full px-4 py-3 rounded-md border bg-white text-sm transition-colors focus:outline-none ${
-                                    fieldErrors.email ? "border-error focus:border-error" : "border-charcoal/15 focus:border-gold"
-                                }`}
-                                placeholder="example@email.com"
+                                type="email" name="email" value={formData.email} onChange={handleChange}
+                                className={`w-full px-4 py-3 rounded-md border bg-white text-sm focus:outline-none ${fieldErrors.email ? "border-error focus:border-error" : "border-charcoal/15 focus:border-gold"}`}
                             />
                             {fieldErrors.email && <p className="text-xs text-error mt-1">{fieldErrors.email}</p>}
                         </div>
@@ -350,15 +356,8 @@ export default function CheckoutPage() {
                         <div>
                             <label className="block text-sm font-medium text-charcoal mb-2">المدينة *</label>
                             <input
-                                type="text"
-                                name="city"
-                                required
-                                value={formData.city}
-                                onChange={handleChange}
-                                className={`w-full px-4 py-3 rounded-md border bg-white text-sm transition-colors focus:outline-none ${
-                                    fieldErrors.city ? "border-error focus:border-error" : "border-charcoal/15 focus:border-gold"
-                                }`}
-                                placeholder="القاهرة"
+                                type="text" name="city" required value={formData.city} onChange={handleChange}
+                                className={`w-full px-4 py-3 rounded-md border bg-white text-sm focus:outline-none ${fieldErrors.city ? "border-error focus:border-error" : "border-charcoal/15 focus:border-gold"}`}
                             />
                             {fieldErrors.city && <p className="text-xs text-error mt-1">{fieldErrors.city}</p>}
                         </div>
@@ -366,15 +365,8 @@ export default function CheckoutPage() {
                         <div>
                             <label className="block text-sm font-medium text-charcoal mb-2">العنوان بالتفصيل *</label>
                             <textarea
-                                name="address"
-                                required
-                                value={formData.address}
-                                onChange={handleChange}
-                                rows={3}
-                                className={`w-full px-4 py-3 rounded-md border bg-white text-sm transition-colors resize-none focus:outline-none ${
-                                    fieldErrors.address ? "border-error focus:border-error" : "border-charcoal/15 focus:border-gold"
-                                }`}
-                                placeholder="الشارع، رقم العمارة، الدور، الشقة"
+                                name="address" required value={formData.address} onChange={handleChange} rows={3}
+                                className={`w-full px-4 py-3 rounded-md border bg-white text-sm resize-none focus:outline-none ${fieldErrors.address ? "border-error focus:border-error" : "border-charcoal/15 focus:border-gold"}`}
                             />
                             {fieldErrors.address && <p className="text-xs text-error mt-1">{fieldErrors.address}</p>}
                         </div>
@@ -395,7 +387,6 @@ export default function CheckoutPage() {
                                     return (
                                         <div key={`${item.productId}-${item.size}-${item.color}`} className="flex gap-3">
                                             <div className="relative w-14 h-16 rounded-md overflow-hidden bg-cream flex-shrink-0 border border-charcoal/5">
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                                 <img src={item.image} alt={item.name} className="absolute inset-0 w-full h-full object-cover" />
                                             </div>
                                             <div className="flex-1 min-w-0">
@@ -424,7 +415,6 @@ export default function CheckoutPage() {
                                 ) : (
                                     <div className="flex items-center justify-between bg-success/10 border border-success/30 rounded-md p-3">
                                         <div className="flex items-center gap-2 text-success">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
                                             <span className="text-sm font-bold">{appliedCoupon.code}</span>
                                         </div>
                                         <button type="button" onClick={() => setAppliedCoupon(null)} className="text-error hover:text-error/80 text-xs font-bold">إلغاء</button>
@@ -443,22 +433,33 @@ export default function CheckoutPage() {
                             </div>
 
                             {error && <div className="mt-4 bg-error/10 text-error border border-error/30 rounded-md p-3 text-sm font-medium">{error}</div>}
-                            {outOfStockItems.length > 0 && <div className="mt-4 bg-warning/10 text-warning-dark border border-warning/30 rounded-md p-3 text-sm font-medium">بعض المنتجات في سلتك خلصت. برجاء حذفها من السلة أو تحديث الكمية للمتابعة.</div>}
+                            {outOfStockItems.length > 0 && <div className="mt-4 bg-warning/10 text-warning-dark border border-warning/30 rounded-md p-3 text-sm font-medium">بعض المنتجات في سلتك خلصت. برجاء حذفها من السلة.</div>}
 
-                            <div className="hidden md:block mt-6">
+                            {/* ✅ أزرار الطلب (ويب + واتساب) للديسكتوب */}
+                            <div className="hidden md:flex flex-col gap-3 mt-6">
                                 <button type="submit" disabled={isSubmitting || outOfStockItems.length > 0} className="w-full bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors disabled:opacity-50">
                                     {isSubmitting ? "جاري إرسال الطلب..." : "تأكيد الطلب"}
                                 </button>
-                                <p className="text-xs text-muted text-center mt-3">الدفع عند الاستلام</p>
+                                <button type="button" onClick={handleWhatsAppOrder} disabled={outOfStockItems.length > 0} className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold h-12 rounded-md transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 448 512" fill="currentColor"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zM223.9 411.1c-33.9 0-67.1-9.1-95.9-26.3l-6.9-4.1-71.2 18.7 19.1-69.4-4.5-7.1c-18.9-30.1-28.9-64.6-28.9-100.5 0-102 83.2-185 185.1-185 49.4 0 95.9 19.3 130.8 54.3 34.8 34.9 54.1 81.4 54.1 130.8 0 102-83.2 185.1-185.1 185.1zm101.5-138.4c-5.6-2.8-33.1-16.3-38.2-18.2-5.1-1.9-8.9-2.8-12.6 2.8-3.7 5.6-14.5 18.2-17.8 21.9-3.3 3.7-6.5 4.2-12.1 1.4-5.6-2.8-23.6-8.7-45-27.7-16.6-14.8-27.8-33.1-31.1-38.7-3.3-5.6-.3-8.6 2.4-11.4 2.5-2.5 5.6-6.5 8.4-9.8 2.8-3.3 3.7-5.6 5.6-9.3 1.9-3.7.9-6.9-.5-9.8-1.4-2.8-12.6-30.4-17.3-41.5-4.6-11.1-9.2-9.6-12.6-9.8-3.3-.2-7.1-.2-10.8-.2-3.7 0-9.8 1.4-14.9 6.9-5.1 5.6-19.6 19.1-19.6 46.7 0 27.6 20 54.3 22.8 58 2.8 3.7 39.4 60.2 95.5 84.3 13.3 5.8 23.8 9.2 31.9 11.8 13.4 4.3 25.6 3.7 35.2 2.2 10.7-1.7 33.1-13.5 37.7-26.6 4.6-13 4.6-24.1 3.2-26.6-1.4-2.5-5.1-4.1-10.7-6.9z"/></svg>
+                                    اطلب عبر واتساب
+                                </button>
+                                <p className="text-xs text-muted text-center">الدفع عند الاستلام</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                {/* ✅ أزرار الطلب للموبايل */}
                 <div className="md:hidden fixed bottom-16 left-0 right-0 p-4 bg-cream/95 backdrop-blur-md border-t border-charcoal/10 z-30">
-                    <button type="submit" disabled={isSubmitting || outOfStockItems.length > 0} className="w-full bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors disabled:opacity-50 shadow-lg">
-                        {isSubmitting ? "جاري إرسال الطلب..." : "تأكيد الطلب"}
-                    </button>
+                    <div className="flex gap-2">
+                        <button type="submit" disabled={isSubmitting || outOfStockItems.length > 0} className="flex-1 bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors disabled:opacity-50 shadow-lg">
+                            {isSubmitting ? "جاري..." : "تأكيد الطلب"}
+                        </button>
+                        <button type="button" onClick={handleWhatsAppOrder} disabled={outOfStockItems.length > 0} className="w-12 h-12 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-md transition-colors flex items-center justify-center shadow-lg flex-shrink-0 disabled:opacity-50">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 448 512" fill="currentColor"><path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zM223.9 411.1c-33.9 0-67.1-9.1-95.9-26.3l-6.9-4.1-71.2 18.7 19.1-69.4-4.5-7.1c-18.9-30.1-28.9-64.6-28.9-100.5 0-102 83.2-185 185.1-185 49.4 0 95.9 19.3 130.8 54.3 34.8 34.9 54.1 81.4 54.1 130.8 0 102-83.2 185.1-185.1 185.1zm101.5-138.4c-5.6-2.8-33.1-16.3-38.2-18.2-5.1-1.9-8.9-2.8-12.6 2.8-3.7 5.6-14.5 18.2-17.8 21.9-3.3 3.7-6.5 4.2-12.1 1.4-5.6-2.8-23.6-8.7-45-27.7-16.6-14.8-27.8-33.1-31.1-38.7-3.3-5.6-.3-8.6 2.4-11.4 2.5-2.5 5.6-6.5 8.4-9.8 2.8-3.3 3.7-5.6 5.6-9.3 1.9-3.7.9-6.9-.5-9.8-1.4-2.8-12.6-30.4-17.3-41.5-4.6-11.1-9.2-9.6-12.6-9.8-3.3-.2-7.1-.2-10.8-.2-3.7 0-9.8 1.4-14.9 6.9-5.1 5.6-19.6 19.1-19.6 46.7 0 27.6 20 54.3 22.8 58 2.8 3.7 39.4 60.2 95.5 84.3 13.3 5.8 23.8 9.2 31.9 11.8 13.4 4.3 25.6 3.7 35.2 2.2 10.7-1.7 33.1-13.5 37.7-26.6 4.6-13 4.6-24.1 3.2-26.6-1.4-2.5-5.1-4.1-10.7-6.9z"/></svg>
+                        </button>
+                    </div>
                     <p className="text-xs text-muted text-center mt-2">الدفع عند الاستلام</p>
                 </div>
             </form>

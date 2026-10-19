@@ -18,8 +18,34 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // ✅ إعدادات مكتبة sharp عشان تشتغل على Vercel
   serverExternalPackages: ["sharp"],
+
+  // ✅ إضافة هيدرز الأمان (Security Headers)
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          {
+            key: "X-Frame-Options",
+            value: "DENY", // يمنع أي موقع تاني من إنه يحط موقعك جوه إطار (Clickjacking)
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff", // يمنع المتصفح من تخمين نوع الملفات (مهم جداً للصور والملفات)
+          },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin", // بيحمي بيانات المستخدم لما يتنقل من موقعك لموقع تاني
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()", // بيمنع أي كود من إنه يطلب إذن الكاميرا أو الميكروفون
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
