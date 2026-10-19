@@ -44,7 +44,6 @@ export default function DashboardPage() {
 
     return (
         <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-12">
-
             {/* Header */}
             <div className="flex items-center justify-between mb-8 animate-fade-up">
                 <div>
@@ -63,7 +62,8 @@ export default function DashboardPage() {
                         <div className="bg-white rounded-xl border border-charcoal/10 p-4 md:p-6 animate-fade-up relative overflow-hidden col-span-2 md:col-span-1">
                             <div className="absolute right-0 top-0 w-20 h-20 bg-gold/10 rounded-bl-full" />
                             <p className="text-xs md:text-sm text-muted mb-1 md:mb-2">الإيرادات</p>
-                            <p className="text-2xl md:text-3xl font-bold text-gold">{stats?.totalRevenue.toLocaleString()} <span className="text-sm">ج.م</span></p>
+                            {/* ✅ تم تعديل السطر ده لحل مشكلة الـ Crash */}
+                            <p className="text-2xl md:text-3xl font-bold text-gold">{stats?.totalRevenue?.toLocaleString() || 0} <span className="text-sm">ج.م</span></p>
                         </div>
                         <div className="bg-white rounded-xl border border-charcoal/10 p-4 md:p-6 animate-fade-up relative overflow-hidden" style={{ animationDelay: "100ms" }}>
                             <div className="absolute right-0 top-0 w-20 h-20 bg-success/10 rounded-bl-full" />

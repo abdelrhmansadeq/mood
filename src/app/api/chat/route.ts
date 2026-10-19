@@ -1,13 +1,12 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { chatRatelimit } from "@/lib/rate-limit"; // ✅ ضفنا الحماية
+import { chatRatelimit } from "@/lib/rate-limit";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export async function POST(request: Request) {
     try {
-        // ✅ تطبيق الحماية
         const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
         const { success } = await chatRatelimit.limit(ip);
         if (!success) {
@@ -27,7 +26,7 @@ export async function POST(request: Request) {
         const { data: products, error: productsError } = await supabaseAdmin
             .from("products")
             .select("id, name, name_en, price, category, description, stock, colors")
-            .neq("is_deleted", true) // ✅ بنجيب المنتجات اللي مش محذوفة
+            .neq("is_deleted", true)
             .gt("stock", 0)
             .limit(40);
 
@@ -50,7 +49,9 @@ export async function POST(request: Request) {
 المنتجات المتاحة:
 ${productList}`;
 
-        const formattedHistory = (history || []).map((msg: { role: string; content: string }) => ({
+        const safeHistory = Array.isArray(history) ? history.slice(-10) : [];
+
+        const formattedHistory = safeHistory.map((msg: { role: string; content: string }) => ({
             role: msg.role === "assistant" ? "model" : "user",
             parts: [{ text: msg.content }]
         }));
@@ -61,22 +62,26 @@ ${productList}`;
         });
 
         const result = await ai.models.generateContent({
-            model: "gemini-3.6-flash",
+            model: "gemini-3.6-flash", // ✅ تركناها زي ما هي
             contents: formattedHistory,
             config: {
                 systemInstruction: systemPrompt,
             }
         });
 
+        // ✅ إصلاح 1: بدل ما نرمي Error، بنرجع Response مباشرة
         if (!result || !result.text) {
-            throw new Error("لم يتم استلام رد من الذكاء الاصطناعي");
+            return NextResponse.json(
+                { error: "حدث خطأ في الاتصال بالمساعد الذكي. يرجى المحاولة لاحقاً." },
+                { status: 500 }
+            );
         }
 
         return NextResponse.json({ reply: result.text });
-    } catch (error: any) {
+    } catch (error: unknown) { // ✅ إصلاح 2: غيرنا any لـ unknown
         console.error("Gemini API error:", error);
         return NextResponse.json(
-            { error: `مشكلة في الـ AI: ${error.message || "تأكد من الـ API Key"}` },
+            { error: "حدث خطأ في الاتصال بالمساعد الذكي. يرجى المحاولة لاحقاً." },
             { status: 500 }
         );
     }

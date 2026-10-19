@@ -3,9 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 export async function proxy(request: NextRequest) {
     let response = NextResponse.next({
-        request: {
-            headers: request.headers,
-        },
+        request: { headers: request.headers },
     })
 
     const supabase = createServerClient(
@@ -18,33 +16,25 @@ export async function proxy(request: NextRequest) {
                 },
                 set(name: string, value: string, options: CookieOptions) {
                     request.cookies.set({ name, value, ...options })
-                    response = NextResponse.next({
-                        request: { headers: request.headers },
-                    })
+                    response = NextResponse.next({ request: { headers: request.headers } })
                     response.cookies.set({ name, value, ...options })
                 },
                 remove(name: string, options: CookieOptions) {
                     request.cookies.set({ name, value: '', ...options })
-                    response = NextResponse.next({
-                        request: { headers: request.headers },
-                    })
+                    response = NextResponse.next({ request: { headers: request.headers } })
                     response.cookies.set({ name, value: '', ...options })
                 },
             },
         }
     )
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
-
+    const { data: { user } } = await supabase.auth.getUser()
     const pathname = request.nextUrl.pathname
 
-    // ✅ شلنا /checkout عشان نسمح للزوار بالشراء
     const isUserProtected = pathname.startsWith('/account')
     const isAdminProtected = pathname.startsWith('/admin/dashboard')
 
-    // 1. لو مش مسجل دخول وبيحاول يدخل صفحة محمية (زي /account)
+    // 1. حماية المستخدمين (لو مش مسجل يروح للوجين)
     if (!user && isUserProtected) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
@@ -52,16 +42,24 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(url)
     }
 
-    // 2. لو مش مسجل دخول وبيحاول يدخل لوحة التحكم
+    // 2. حماية الأدمن (لو مش مسجل يروح للوجين الأدمن)
+    // ملاحظة: التحقق من إنه "أدمن فعلاً" بيحصل في الـ APIs (Server-side) وفي الـ admin-context (Client-side)
+    // عشان منبطأش الـ Proxy بـ Database Queries
     if (!user && isAdminProtected) {
         const url = request.nextUrl.clone()
         url.pathname = '/admin'
         return NextResponse.redirect(url)
     }
 
-    // 3. لو مسجل دخول وبيحاول يفتح صفحة اللوجين، نوديه للمكان اللي كان رايحه
+    // 3. منع الـ Open Redirect في اللوجين (تعديلك العبقري)
     if (user && pathname === '/login') {
-        const next = request.nextUrl.searchParams.get('next') || '/account'
+        let next = request.nextUrl.searchParams.get('next') || '/account'
+
+        // ✅ تأمين: نمنع أي URL خارجي
+        if (!next.startsWith('/') || next.startsWith('//')) {
+            next = '/account'
+        }
+
         return NextResponse.redirect(new URL(next, request.url))
     }
 
@@ -69,7 +67,8 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
+    // ✅ استثنينا /api والملفات الثابتة عشان نحسن السرعة
     matcher: [
-        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+        '/((?!api|_next/static|_next/image|favicon.ico|monitoring|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     ],
 }

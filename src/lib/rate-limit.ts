@@ -22,10 +22,10 @@ export const contactRatelimit = new Ratelimit({
     prefix: "mood:contact",
 });
 
-// 🛡️ 3. حماية إنشاء الطلبات (10 طلبات في الساعة)
+// 🛡️ 3. حماية إنشاء الطلبات (30 طلب في الساعة - تم الرفع لحل مشكلة شبكات المحمول)
 export const orderRatelimit = new Ratelimit({
     redis,
-    limiter: Ratelimit.slidingWindow(10, "1 h"),
+    limiter: Ratelimit.slidingWindow(30, "1 h"),
     analytics: true,
     prefix: "mood:order",
 });
