@@ -2,35 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ✅ إضافة متغيرات ألوان الوضع الفاتح والغامق */
 @layer base {
   :root {
-    --bg-cream: 250 250 247; /* #FAFAF7 */
-    --bg-white: 255 255 255; /* #FFFFFF */
-    --text-charcoal: 31 31 31; /* #1F1F1F */
+    --bg-cream: 250 250 247;
+    --bg-white: 255 255 255;
+    --text-charcoal: 31 31 31;
   }
 
   .dark {
-    --bg-cream: 18 18 18; /* #121212 */
-    --bg-white: 28 28 28; /* #1C1C1C */
-    --text-charcoal: 250 250 247; /* #FAFAF7 */
+    --bg-cream: 18 18 18;
+    --bg-white: 28 28 28;
+    --text-charcoal: 250 250 247;
   }
 }
 
-/* Global Resets */
-* {
+/* ✅ أهم تعديل: منع السكرول الأفقي */
+html, body {
+  margin: 0;
+  padding: 0;
   box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
+  overflow-x: hidden; /* منع المساحة البيضا */
+  width: 100%;
+  max-width: 100vw;
 }
 
 body {
-  margin: 0;
-  padding: 0;
   line-height: 1.6;
-  /* ✅ ربطنا لون الخلفية والنص بالمتغيرات عشان الدارك مود */
   background-color: rgb(var(--bg-cream));
   color: rgb(var(--text-charcoal));
   transition: background-color 0.3s ease, color 0.3s ease;
@@ -44,19 +41,15 @@ body {
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
 }
-
 ::-webkit-scrollbar-track {
-  /* ✅ ربطنا لون التراكم بالمتغيرات */
   background: rgb(var(--bg-cream));
 }
-
 ::-webkit-scrollbar-thumb {
   background: #C89B5A;
-  border-radius: 5px;
+  border-radius: 4px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
   background: #A87F45;
 }
@@ -66,8 +59,15 @@ body {
   input, textarea, select {
     font-size: 16px !important; /* منع الزووم في الآيفون */
   }
-
   button, a {
     min-height: 44px; /* مساحة كافية للضغط باللمس */
   }
+}
+/* ✅ إخفاء سكرول الصور في الموبايل */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

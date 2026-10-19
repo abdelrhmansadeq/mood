@@ -42,6 +42,17 @@ module.exports = {
         fadeDown: {
           "0%": { opacity: "0", transform: "translateY(-10px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
+          keyframes: {
+            // ... (باقي الأنيميشن)
+            slideUp: {
+              '0%': { transform: 'translateY(100%)' },
+              '100%': { transform: 'translateY(0)' },
+            },
+          },
+          animation: {
+            // ... (باقي الأنيميشن)
+            'slide-up': 'slideUp 0.3s ease-out forwards',
+          },
         },
       },
     },

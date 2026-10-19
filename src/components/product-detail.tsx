@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Product, ProductSizes } from "@/data/products";
@@ -27,6 +27,10 @@ export default function ProductDetail({ product, related }: Props) {
     const [quantity, setQuantity] = useState(1);
     const [selectedImage, setSelectedImage] = useState<string>(initialImage);
     const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+
+    // ✅ حالة الصورة النشطة في الموبايل (للنقط اللي تحت)
+    const [activeMobileIndex, setActiveMobileIndex] = useState(0);
+    const mobileScrollRef = useRef<HTMLDivElement>(null);
 
     const { addItem, openCart } = useCart();
     const { showToast } = useToast();
@@ -89,81 +93,135 @@ export default function ProductDetail({ product, related }: Props) {
         const newSizes = product.colors[idx]?.sizes || product.sizes || defaultSizes;
         const firstAvailable = SIZES.find((s) => (newSizes[s] || 0) > 0);
         if (firstAvailable) setSelectedSize(firstAvailable);
+
+        // ✅ نرجع الموبايل لأول صورة لما اللون يتغير
+        if (mobileScrollRef.current) {
+            mobileScrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+            setActiveMobileIndex(0);
+        }
+    };
+
+    // ✅ تحديث النقط اللي تحت الصورة لما العميل يسحب
+    const handleMobileScroll = () => {
+        if (mobileScrollRef.current) {
+            const scrollLeft = mobileScrollRef.current.scrollLeft;
+            const width = mobileScrollRef.current.clientWidth;
+            const newIndex = Math.round(scrollLeft / width);
+            setActiveMobileIndex(newIndex);
+        }
     };
 
     const colorTotalStock = hasColors ? Object.values(currentSizes).reduce((a, b) => a + b, 0) : totalCurrentStock;
     const hasGallery = galleryImages.length > 1;
 
     return (
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8 md:py-12 pb-32 md:pb-12">
-            <nav className="text-sm text-muted mb-8 animate-fade-in hidden md:block">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-12 pb-32 md:pb-12">
+            <nav className="text-sm text-muted mb-6 md:mb-8 animate-fade-in hidden md:block">
                 <Link href="/" className="hover:text-gold">الرئيسية</Link><span className="mx-2">/</span>
                 <Link href="/products" className="hover:text-gold">المنتجات</Link><span className="mx-2">/</span>
                 <span className="text-charcoal">{product.name}</span>
             </nav>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 mb-20">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 mb-16 md:mb-20">
+
+                {/* ===== الصور ===== */}
                 <div className="animate-fade-in">
-                    <div className="relative w-full rounded-lg overflow-hidden bg-cream group cursor-zoom-in" style={{ aspectRatio: "3 / 4" }}>
-                        {/* ✅ ضفنا sizes هنا */}
-                        <Image
-                            src={selectedImage}
-                            alt={product.name}
-                            fill
-                            sizes="(max-width: 1024px) 100vw, 50vw"
-                            className={`object-cover animate-fade-in transition-transform duration-500 group-hover:scale-125 ${isOutOfStock ? "opacity-50" : ""}`}
-                        />
+
+                    {/* ✅ صور الموبايل (Swipeable) */}
+                    <div className="md:hidden relative w-full rounded-xl overflow-hidden bg-cream" style={{ aspectRatio: "3 / 4" }}>
+                        <div
+                            ref={mobileScrollRef}
+                            onScroll={handleMobileScroll}
+                            className="flex overflow-x-auto snap-x snap-mandatory h-full w-full scrollbar-hide"
+                        >
+                            {galleryImages.map((img, idx) => (
+                                <div key={idx} className="relative w-full h-full flex-shrink-0 snap-center">
+                                    <Image
+                                        src={img}
+                                        alt={`${product.name} - ${idx + 1}`}
+                                        fill
+                                        sizes="100vw"
+                                        className={`object-cover ${isOutOfStock ? "opacity-50" : ""}`}
+                                        priority={idx === 0} // تحميل الصورة الأولى بسرعة
+                                    />
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* النقط اللي تحت */}
+                        {hasGallery && (
+                            <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 z-10">
+                                {galleryImages.map((_, idx) => (
+                                    <span key={idx} className={`w-2 h-2 rounded-full transition-all ${activeMobileIndex === idx ? "bg-charcoal w-4" : "bg-charcoal/30"}`} />
+                                ))}
+                            </div>
+                        )}
+
                         {hasSale && !isOutOfStock && <div className="absolute top-4 left-4 bg-error text-white text-sm font-bold px-3 py-1.5 rounded-full z-10">خصم {discountPercent}%</div>}
                         {isOutOfStock && <div className="absolute top-4 right-4 bg-charcoal/90 text-cream text-sm font-medium px-4 py-2 rounded-full z-10">نفد المخزون</div>}
                     </div>
 
-                    {hasGallery && (
-                        <div className="mt-3 flex gap-2 overflow-x-auto pb-2">
-                            {galleryImages.map((img, idx) => (
-                                <button key={`${img}-${idx}`} onClick={() => setSelectedImage(img)} className={`relative w-16 h-20 md:w-20 md:h-24 rounded-md overflow-hidden flex-shrink-0 border-2 transition-all ${selectedImage === img ? "border-gold" : "border-charcoal/10 hover:border-charcoal/40"}`}>
-                                    {/* ✅ ضفنا sizes هنا */}
-                                    <Image src={img} alt={`${product.name} - صورة ${idx + 1}`} fill sizes="80px" className="object-cover" />
-                                </button>
-                            ))}
+                    {/* ✅ صور الديسكتوب (مع الزووم) */}
+                    <div className="hidden md:block">
+                        <div className="relative w-full rounded-lg overflow-hidden bg-cream group cursor-zoom-in" style={{ aspectRatio: "3 / 4" }}>
+                            <Image
+                                src={selectedImage}
+                                alt={product.name}
+                                fill
+                                sizes="50vw"
+                                className={`object-cover animate-fade-in transition-transform duration-500 group-hover:scale-125 ${isOutOfStock ? "opacity-50" : ""}`}
+                            />
+                            {hasSale && !isOutOfStock && <div className="absolute top-4 left-4 bg-error text-white text-sm font-bold px-3 py-1.5 rounded-full z-10">خصم {discountPercent}%</div>}
+                            {isOutOfStock && <div className="absolute top-4 right-4 bg-charcoal/90 text-cream text-sm font-medium px-4 py-2 rounded-full z-10">نفد المخزون</div>}
                         </div>
-                    )}
+
+                        {hasGallery && (
+                            <div className="mt-3 flex gap-2 overflow-x-auto pb-2">
+                                {galleryImages.map((img, idx) => (
+                                    <button key={`${img}-${idx}`} onClick={() => setSelectedImage(img)} className={`relative w-16 h-20 md:w-20 md:h-24 rounded-md overflow-hidden flex-shrink-0 border-2 transition-all ${selectedImage === img ? "border-gold" : "border-charcoal/10 hover:border-charcoal/40"}`}>
+                                        <Image src={img} alt={`${product.name} - صورة ${idx + 1}`} fill sizes="80px" className="object-cover" />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
+                {/* ===== البيانات ===== */}
                 <div className="flex flex-col animate-fade-up">
-                    <p className="text-gold text-xs font-medium tracking-widest uppercase mb-3">
+                    <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2 md:mb-3">
                         {product.category === "men" ? "رجالي" : product.category === "women" ? "نسائي" : product.category === "kids" ? "أطفال" : product.category === "shoes" ? "أحذية" : "إكسسوارات"}
                     </p>
 
                     <div className="flex items-start justify-between gap-3 mb-2">
-                        <h1 className="text-2xl md:text-4xl font-bold text-charcoal">{product.name}</h1>
+                        <h1 className="text-2xl md:text-4xl font-bold text-charcoal leading-tight">{product.name}</h1>
                         <button
                             onClick={() => { toggleItem(product.id); showToast(isFavorite ? "تمت الإزالة من المفضلة" : "تمت الإضافة للمفضلة", "success"); }}
-                            className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center border-2 transition-all ${isFavorite ? "bg-error border-error text-white" : "bg-white border-charcoal/15 text-charcoal hover:border-error hover:text-error"}`}
+                            className={`flex-shrink-0 w-10 h-10 md:w-11 md:h-11 rounded-full flex items-center justify-center border-2 transition-all ${isFavorite ? "bg-error border-error text-white" : "bg-white border-charcoal/15 text-charcoal hover:border-error hover:text-error"}`}
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
                         </button>
                     </div>
-                    <p className="text-muted mb-4 md:mb-6 text-sm md:text-base">{product.nameEn}</p>
+                    <p className="text-muted mb-4 text-sm md:text-base">{product.nameEn}</p>
 
                     {hasSale ? (
-                        <div className="flex items-center gap-3 flex-wrap mb-3 md:mb-4">
+                        <div className="flex items-center gap-3 flex-wrap mb-4">
                             <p className="text-2xl md:text-3xl font-bold text-error">{finalPrice} <span className="text-lg">ج.م</span></p>
                             <p className="text-base md:text-lg text-muted line-through">{product.price} ج.م</p>
                             <div className="flex items-center gap-2 flex-wrap">
                                 <span className="bg-error text-white text-xs font-bold px-2.5 py-1 rounded-full">خصم {discountPercent}%</span>
-                                <span className="bg-error/10 text-error text-xs font-bold px-2 py-1 rounded-full">وفّر {product.price - finalPrice} ج.م</span>
                             </div>
                         </div>
                     ) : (
-                        <p className="text-2xl md:text-3xl font-bold text-charcoal mb-3 md:mb-4">{product.price} <span className="text-lg">ج.م</span></p>
+                        <p className="text-2xl md:text-3xl font-bold text-charcoal mb-4">{product.price} <span className="text-lg">ج.م</span></p>
                     )}
 
-                    {isOutOfStock ? <p className="text-sm text-error font-medium mb-4 md:mb-6">نفد المخزون</p> : totalCurrentStock < 10 ? <p className="text-sm text-gold font-medium mb-4 md:mb-6">باقي {totalCurrentStock} قطع فقط</p> : <p className="text-sm text-success font-medium mb-4 md:mb-6">متوفر ({totalCurrentStock} قطعة)</p>}
+                    {isOutOfStock ? <p className="text-sm text-error font-medium mb-6">نفد المخزون</p> : totalCurrentStock < 10 ? <p className="text-sm text-gold font-medium mb-6">باقي {totalCurrentStock} قطع فقط</p> : <p className="text-sm text-success font-medium mb-6">متوفر ({totalCurrentStock} قطعة)</p>}
 
                     <p className="text-charcoal/80 leading-relaxed mb-6 md:mb-8 text-sm md:text-base">{product.description}</p>
 
                     {hasColors && (
-                        <div className="mb-5 md:mb-6">
+                        <div className="mb-6">
                             <div className="flex items-center justify-between mb-3">
                                 <label className="text-sm font-medium text-charcoal">اللون</label>
                                 <span className="text-sm text-muted flex items-center gap-2">
@@ -185,7 +243,7 @@ export default function ProductDetail({ product, related }: Props) {
                         </div>
                     )}
 
-                    <div className="mb-5 md:mb-6">
+                    <div className="mb-6">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-3">
                                 <label className="text-sm font-medium text-charcoal">المقاس</label>
@@ -221,9 +279,7 @@ export default function ProductDetail({ product, related }: Props) {
                         </button>
                     </div>
 
-                    {reachedMax && canAddToCart && <p className="text-xs text-gold mb-4 md:mb-6">وصلت للحد الأقصى المتاح ({sizeStock} قطعة)</p>}
-
-                    <div className="border-t border-charcoal/10 pt-5 md:pt-6 space-y-2 md:space-y-3 text-sm text-charcoal/70">
+                    <div className="border-t border-charcoal/10 pt-6 space-y-3 text-sm text-charcoal/70">
                         <p>✓ شحن مجاني للطلبات أكثر من 500 ج.م</p>
                         <p>✓ إرجاع مجاني خلال 14 يوم</p>
                         <p>✓ دعم 24/7</p>
@@ -239,7 +295,6 @@ export default function ProductDetail({ product, related }: Props) {
                             <div key={p.id} className="animate-fade-up opacity-0" style={{ animationDelay: `${idx * 80}ms`, animationFillMode: "forwards" }}>
                                 <Link href={`/products/${p.id}`} className="group block bg-white rounded-lg overflow-hidden border border-charcoal/5 hover:border-gold/30 transition-all hover:shadow-lg">
                                     <div className="relative w-full aspect-[3/4] overflow-hidden bg-cream">
-                                        {/* ✅ ضفنا sizes هنا */}
                                         <Image src={p.image} alt={p.name} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover group-hover:scale-105 transition-transform duration-500" />
                                     </div>
                                     <div className="p-3 md:p-4">
@@ -286,14 +341,15 @@ export default function ProductDetail({ product, related }: Props) {
                 </div>
             )}
 
-            <div className="md:hidden fixed bottom-16 inset-x-0 z-30 bg-cream/95 backdrop-blur-md border-t border-charcoal/10 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-                <div className="flex items-center gap-2 p-3">
-                    <div className="flex items-center border border-charcoal/20 rounded-md bg-white">
-                        <button onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={!canAddToCart} className="w-8 h-11 text-charcoal disabled:opacity-40">−</button>
-                        <span className="w-8 text-center text-sm font-medium">{quantity}</span>
-                        <button onClick={() => setQuantity(Math.min(sizeStock, quantity + 1))} disabled={!canAddToCart || reachedMax} className="w-8 h-11 text-charcoal disabled:opacity-40">+</button>
+            {/* ✅ Mobile Sticky Bar (محسن) */}
+            <div className="md:hidden fixed bottom-16 inset-x-0 z-30 bg-white border-t border-charcoal/10 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+                <div className="flex items-center gap-3 p-4">
+                    <div className="flex items-center border border-charcoal/20 rounded-lg bg-cream">
+                        <button onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={!canAddToCart} className="w-10 h-12 text-charcoal disabled:opacity-40 text-lg font-medium">−</button>
+                        <span className="w-8 text-center text-sm font-bold">{quantity}</span>
+                        <button onClick={() => setQuantity(Math.min(sizeStock, quantity + 1))} disabled={!canAddToCart || reachedMax} className="w-10 h-12 text-charcoal disabled:opacity-40 text-lg font-medium">+</button>
                     </div>
-                    <button onClick={handleAddToCart} disabled={!canAddToCart} className="flex-1 bg-charcoal text-cream font-semibold h-11 rounded-md text-sm transition-all active:scale-[0.98] disabled:opacity-40 flex items-center justify-between px-4">
+                    <button onClick={handleAddToCart} disabled={!canAddToCart} className="flex-1 bg-charcoal text-cream font-semibold h-12 rounded-lg text-sm transition-all active:scale-[0.98] disabled:opacity-40 flex items-center justify-between px-4">
                         <span>{isOutOfStock ? "نفد المخزون" : sizeStock === 0 ? "المقاس غير متوفر" : "أضف للسلة"}</span>
                         <span className="text-gold font-bold">{finalPrice * quantity} ج.م</span>
                     </button>
