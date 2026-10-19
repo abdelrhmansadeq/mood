@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useAuth } from "@/components/auth-context";
-import GoogleLoginButton from "@/components/google-login-button";
+//import GoogleLoginButton from "@/components/google-login-button";
 
 export default function SignupPage() {
     const router = useRouter();
@@ -130,7 +130,7 @@ export default function SignupPage() {
                     </button>
                 </form>
 
-                <GoogleLoginButton />
+                {/*<GoogleLoginButton />*/}
 
                 <p className="text-center text-sm text-muted mt-6">
                     عندك حساب بالفعل؟ <Link href="/login" className="text-gold font-medium hover:underline">سجل دخول</Link>

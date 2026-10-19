@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { FormEvent } from "react";
 import { useAuth } from "@/components/auth-context";
-import GoogleLoginButton from "@/components/google-login-button";
+//import GoogleLoginButton from "@/components/google-login-button";
 
 function LoginForm() {
     const searchParams = useSearchParams();
@@ -100,7 +100,7 @@ function LoginForm() {
                     </button>
                 </form>
 
-                <GoogleLoginButton />
+                {/*<GoogleLoginButton />*/}
 
                 <p className="text-center text-sm text-muted mt-6">
                     معندكش حساب؟{" "}

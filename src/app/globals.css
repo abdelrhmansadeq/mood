@@ -60,3 +60,14 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #A87F45;
 }
+
+/* ✅ تحسينات الموبايل */
+@media (max-width: 768px) {
+  input, textarea, select {
+    font-size: 16px !important; /* منع الزووم في الآيفون */
+  }
+
+  button, a {
+    min-height: 44px; /* مساحة كافية للضغط باللمس */
+  }
+}
