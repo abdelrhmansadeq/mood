@@ -17,9 +17,11 @@ export function checkScheduledMaintenance(request: NextRequest): NextResponse | 
 
     if (isExcluded) return null;
 
-    // حساب الوقت الحالي بالدقايق
+    // ✅ تحويل وقت السيرفر (UTC) لتوقيت مصر أوتوماتيك
     const now = new Date();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const egyptTime = new Date(now.toLocaleString("en-US", { timeZone: "Africa/Cairo" }));
+
+    const currentMinutes = egyptTime.getHours() * 60 + egyptTime.getMinutes();
 
     const [startH, startM] = startTime.split(':').map(Number);
     const [endH, endM] = endTime.split(':').map(Number);
@@ -39,6 +41,5 @@ export function checkScheduledMaintenance(request: NextRequest): NextResponse | 
 
     return NextResponse.rewrite(new URL('/maintenance', request.url));
 }
-
 
 //الصيانه المجدوله (بوقت محدد)
