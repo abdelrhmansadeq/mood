@@ -1,7 +1,20 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+/////////maintenence
+import { checkManualMaintenance } from '@/lib/manual-maintenance';
+import { checkScheduledMaintenance } from '@/lib/scheduled-maintenance';
+
 export async function proxy(request: NextRequest) {
+    // ✅ فحص الصيانة اليدوية أولاً
+    const manualResponse = checkManualMaintenance(request);
+    if (manualResponse) return manualResponse;
+
+    // ✅ فحص الصيانة المجدولة
+    const scheduledResponse = checkScheduledMaintenance(request);
+    if (scheduledResponse) return scheduledResponse;
+
+    // ... (باقي الكود بتاعك زي ما هو بالظبط) ...
     let response = NextResponse.next({
         request: { headers: request.headers },
     })
