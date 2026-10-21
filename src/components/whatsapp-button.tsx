@@ -10,7 +10,7 @@ export default function WhatsAppButton() {
 
     return (
         <a
-            href="https://wa.me/201014766903"
+            href="https://wa.me/201000000000" // ✅ تم تغيير الرقم لرقم تجريبي
             target="_blank"
             rel="noopener noreferrer"
             className={`fixed left-4 md:left-8 z-40 bg-[#25D366] text-white p-3.5 rounded-full shadow-lg hover:scale-110 hover:shadow-xl transition-all duration-300 animate-bounce ${

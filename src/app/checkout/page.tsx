@@ -179,7 +179,7 @@ export default function CheckoutPage() {
             window.scrollTo({ top: 0, behavior: "smooth" });
             return;
         }
-        const storePhone = "201014766903";
+        const storePhone = "201000000000";
         let text = `*طلب جديد من متجر Mood*\n\n`;
         text += `*بيانات العميل:*\n`;
         text += `👤 الاسم: ${formData.fullName}\n`;

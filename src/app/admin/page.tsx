@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { FormEvent } from "react";
 import { useAdmin } from "@/components/admin-context";
+import Turnstile from "react-turnstile";
 
 export default function AdminLoginPage() {
     const router = useRouter();
@@ -13,24 +13,49 @@ export default function AdminLoginPage() {
     const [error, setError] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+
+    // ✅ 1. بديل الـ ref: بنستخدم key عشان نعمل Reset للكابتشا
+    const [turnstileKey, setTurnstileKey] = useState(0);
+
     useEffect(() => {
         if (!isLoading && isLoggedIn) {
             router.push("/admin/dashboard");
         }
-    }, [isLoggedIn, isLoading, router]);
+    }, [isLoading, isLoggedIn, router]);
 
-    const handleSubmit = async (e: FormEvent) => {
+    // ✅ 3. دالة مساعدة لتصفير الكابتشا
+    const resetTurnstile = () => {
+        setTurnstileKey((prev) => prev + 1);
+        setTurnstileToken(null);
+    };
+
+    // ✅ 4. تغيير FormEvent لـ React.FormEvent عشان نشيل تحذير الـ Deprecated
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError("");
+
+        if (!turnstileToken) {
+            setError("يرجى إكمال التحقق من أنك لست روبوت.");
+            return;
+        }
+
         setIsSubmitting(true);
 
         try {
-            // ✅ فحص الحماية أولاً
-            const checkRes = await fetch("/api/admin/login-check", { method: "POST" });
+            const checkRes = await fetch("/api/admin/login-check", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ token: turnstileToken }),
+            });
+
             if (!checkRes.ok) {
                 const errorData = await checkRes.json();
                 setError(errorData.error || "تم حظر المحاولات مؤقتاً.");
                 setIsSubmitting(false);
+                resetTurnstile(); // ✅ تصفير لو الـ API رفض
                 return;
             }
 
@@ -39,12 +64,15 @@ export default function AdminLoginPage() {
             if (result.error) {
                 setError(result.error);
                 setIsSubmitting(false);
+                resetTurnstile(); // ✅ تصفير لو الباسورد غلط
             } else {
                 router.push("/admin/dashboard");
             }
-        } catch (err) {
+        } catch {
+            // ✅ 2. شيلنا المتغير (err) لحل مشكلة ESLint
             setError("حصلت مشكلة في الاتصال بالسيرفر.");
             setIsSubmitting(false);
+            resetTurnstile();
         }
     };
 
@@ -93,6 +121,21 @@ export default function AdminLoginPage() {
                         />
                     </div>
 
+                    <div className="flex justify-center py-2">
+                        <Turnstile
+                            key={turnstileKey} // ✅ السحر هنا: لما الـ key يتغير، الكابتشا هتتصفر
+                            sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                            theme="auto"
+                            language="ar"
+                            onSuccess={(token) => {
+                                setTurnstileToken(token);
+                                setError("");
+                            }}
+                            onError={() => setError("فشل في تحميل الكابتشا، يرجى تحديث الصفحة.")}
+                            onExpire={() => setTurnstileToken(null)}
+                        />
+                    </div>
+
                     {error && (
                         <div className="bg-error/10 text-error border border-error/30 rounded-md p-3 text-sm font-medium">
                             {error}
@@ -101,8 +144,8 @@ export default function AdminLoginPage() {
 
                     <button
                         type="submit"
-                        disabled={isSubmitting}
-                        className="w-full bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors disabled:opacity-50"
+                        disabled={isSubmitting || !turnstileToken}
+                        className="w-full bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isSubmitting ? "جاري التحقق..." : "تسجيل الدخول"}
                     </button>
