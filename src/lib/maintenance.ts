@@ -6,7 +6,7 @@ export async function isMaintenanceMode(): Promise<boolean> {
             console.warn("⚠️ EDGE_CONFIG is not set. Maintenance mode is disabled.");
             return false;
         }
-        const isMaintenance = await get("is_maintenance");
+        const isMaintenance = await get("mood-config");
         console.log("🛠️ Maintenance mode from Edge Config:", isMaintenance);
         return Boolean(isMaintenance);
     } catch (error) {
