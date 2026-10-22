@@ -1,7 +1,10 @@
+"use client"; // ✅ ضفناها عشان نقدر نستخدم window
+
 import Link from "next/link";
 
 export default function MaintenancePage() {
-    const storePhone = "201014766903";
+    // ✅ رقم وهمي للتجربة
+    const storePhone = "201000000000";
     const waMessage = encodeURIComponent("مرحباً، أنا محتاج مساعدة عاجلة من متجر Mood.");
     const waLink = `https://wa.me/${storePhone}?text=${waMessage}`;
 
@@ -24,14 +27,14 @@ export default function MaintenancePage() {
 
             {/* الأزرار */}
             <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm mb-8">
-                {/* زرار تحديث الصفحة */}
-                <Link
-                    href="/"
+                {/* ✅ زرار تحديث حقيقي بدل الـ Link */}
+                <button
+                    onClick={() => window.location.reload()}
                     className="flex-1 bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
                     تحديث الصفحة
-                </Link>
+                </button>
 
                 {/* زرار واتساب */}
                 <a
