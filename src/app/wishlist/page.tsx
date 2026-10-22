@@ -12,35 +12,37 @@ export default function WishlistPage() {
     const wishlistProducts = products.filter((p) => items.includes(p.id));
 
     return (
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12 animate-fade-in">
+        // ✅ قللنا الـ py من 12 لـ 6 على الموبايل
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-12 animate-fade-in">
             {/* Header */}
-            <div className="text-center mb-12 animate-fade-up">
-                <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2">
+            <div className="text-center mb-8 md:mb-12 animate-fade-up">
+                <p className="text-gold text-[10px] md:text-xs font-medium tracking-widest uppercase mb-1 md:mb-2">
                     Wishlist
                 </p>
-                <h1 className="text-4xl md:text-5xl font-bold text-charcoal mb-3">
+                {/* ✅ صغرنا الخط من 4xl لـ 2xl */}
+                <h1 className="text-2xl md:text-5xl font-bold text-charcoal mb-2 md:mb-3">
                     المفضلة
                 </h1>
-                <p className="text-muted max-w-md mx-auto">
+                <p className="text-muted text-xs md:text-base max-w-md mx-auto">
                     المنتجات اللي حفظتها للرجوع ليها بعدين
                 </p>
             </div>
 
             {wishlistProducts.length > 0 ? (
                 <>
-                    <div className="flex items-center justify-between mb-6 pb-4 border-b border-charcoal/10 animate-fade-up">
-                        <p className="text-sm text-muted">
+                    <div className="flex items-center justify-between mb-4 md:mb-6 pb-3 md:pb-4 border-b border-charcoal/10 animate-fade-up">
+                        <p className="text-xs md:text-sm text-muted">
                             {wishlistProducts.length} منتج
                         </p>
                         <button
                             onClick={clearWishlist}
-                            className="text-sm text-error hover:underline"
+                            className="text-xs md:text-sm text-error hover:underline"
                         >
                             امسح الكل
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
                         {wishlistProducts.map((product, idx) => (
                             <div
                                 key={product.id}
@@ -56,26 +58,28 @@ export default function WishlistPage() {
                     </div>
                 </>
             ) : (
-                <div className="text-center py-20 animate-fade-up">
-                    <div className="w-20 h-20 rounded-full bg-charcoal/5 flex items-center justify-center mx-auto mb-6">
+                // ✅ قللنا المساحة الفاضية من py-20 لـ py-16
+                <div className="text-center py-16 md:py-20 animate-fade-up">
+                    <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-charcoal/5 flex items-center justify-center mx-auto mb-4 md:mb-6">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            width="36"
-                            height="36"
+                            width="28"
+                            height="28"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="#6B6B6B"
                             strokeWidth="1.5"
                             strokeLinecap="round"
                             strokeLinejoin="round"
+                            className="md:w-9 md:h-9"
                         >
                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                         </svg>
                     </div>
-                    <p className="text-muted mb-6">مفيش منتجات في المفضلة لحد الآن</p>
+                    <p className="text-sm md:text-base text-muted mb-5 md:mb-6">مفيش منتجات في المفضلة لحد الآن</p>
                     <Link
                         href="/products"
-                        className="inline-block bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold px-6 py-3 rounded-md transition-colors"
+                        className="inline-block bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold px-6 py-2.5 md:py-3 rounded-md transition-colors text-sm md:text-base"
                     >
                         ابدأ التسوق
                     </Link>

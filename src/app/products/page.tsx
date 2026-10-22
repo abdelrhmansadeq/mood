@@ -21,9 +21,7 @@ export default function ProductsPage() {
     const [sortBy, setSortBy] = useState<SortOption>("featured");
     const [priceRange, setPriceRange] = useState<PriceRange>("all");
 
-    // ✅ حالة فتح وقفل الفلاتر في الموبايل
     const [isFilterOpen, setIsFilterOpen] = useState(false);
-
     const [showSuggestions, setShowSuggestions] = useState(false);
     const searchRef = useRef<HTMLDivElement>(null);
 
@@ -118,35 +116,34 @@ export default function ProductsPage() {
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-12 animate-fade-in">
+        // ✅ قللنا الـ padding الفوق والتحت على الموبايل
+        <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-12 animate-fade-in">
             {/* Header */}
-            <div className="text-center mb-8 md:mb-12 animate-fade-up">
-                <p className="text-gold text-xs font-medium tracking-widest uppercase mb-2">Shop</p>
-                <h1 className="text-3xl md:text-5xl font-bold text-charcoal mb-3">كل المنتجات</h1>
-                <p className="text-muted max-w-md mx-auto text-sm md:text-base">اكتشف تشكيلتنا الكاملة من الملابس العصرية</p>
+            <div className="text-center mb-6 md:mb-12 animate-fade-up">
+                <p className="text-gold text-[10px] md:text-xs font-medium tracking-widest uppercase mb-1 md:mb-2">Shop</p>
+                <h1 className="text-2xl md:text-5xl font-bold text-charcoal mb-2 md:mb-3">كل المنتجات</h1>
+                <p className="text-muted max-w-md mx-auto text-xs md:text-base">اكتشف تشكيلتنا الكاملة من الملابس العصرية</p>
             </div>
 
             {/* ===== MOBILE SEARCH & FILTER BUTTON ===== */}
-            <div className="md:hidden flex items-center gap-2 mb-6">
+            <div className="md:hidden flex items-center gap-2 mb-5">
                 <div className="relative flex-1" ref={searchRef}>
                     <input
                         type="text"
                         placeholder="ابحث عن منتج..."
                         value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                            setShowSuggestions(true);
-                        }}
+                        onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true); }}
                         onFocus={() => setShowSuggestions(true)}
-                        className="w-full px-4 py-3 ps-10 rounded-full border border-charcoal/15 bg-white text-base text-charcoal focus:outline-none focus:border-gold transition-colors"
+                        // ✅ صغرنا الـ padding والخط
+                        className="w-full px-4 py-2.5 ps-9 rounded-full border border-charcoal/15 bg-white text-sm text-charcoal focus:outline-none focus:border-gold transition-colors"
                     />
-                    <svg className="absolute top-1/2 -translate-y-1/2 start-3.5 w-5 h-5 text-muted" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <svg className="absolute top-1/2 -translate-y-1/2 start-3 w-4 h-4 text-muted" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                         <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
                     </svg>
                     {showSuggestions && suggestions.length > 0 && (
                         <div className="absolute top-full mt-2 w-full bg-white border border-charcoal/10 rounded-lg shadow-xl z-50 overflow-hidden animate-fade-in">
                             {suggestions.map((product) => (
-                                <button key={product.id} onClick={() => handleSuggestionClick(product.id)} className="w-full flex items-center gap-3 p-3 hover:bg-cream transition-colors text-right border-b border-charcoal/5 last:border-0">
+                                <button key={product.id} onClick={() => handleSuggestionClick(product.id)} className="w-full flex items-center gap-3 p-2.5 hover:bg-cream transition-colors text-right border-b border-charcoal/5 last:border-0">
                                     <img src={product.image} alt={product.name} className="w-10 h-12 object-cover rounded" />
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium text-charcoal truncate">{product.name}</p>
@@ -158,12 +155,12 @@ export default function ProductsPage() {
                     )}
                 </div>
 
-                {/* Filter Button */}
+                {/* ✅ صغرنا زرار الفلتر شوية */}
                 <button
                     onClick={() => setIsFilterOpen(true)}
-                    className="bg-charcoal text-cream h-12 w-12 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm"
+                    className="bg-charcoal text-cream h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line>
                     </svg>
                 </button>
@@ -205,10 +202,10 @@ export default function ProductsPage() {
 
             {/* Result Count */}
             {!isLoading && (
-                <div className="flex items-center justify-between mb-6">
-                    <p className="text-sm text-muted">{filteredProducts.length} منتج</p>
+                <div className="flex items-center justify-between mb-4 md:mb-6">
+                    <p className="text-xs md:text-sm text-muted">{filteredProducts.length} منتج</p>
                     {hasActiveFilters && (
-                        <button onClick={clearFilters} className="text-sm text-gold hover:underline font-medium">امسح كل الفلاتر</button>
+                        <button onClick={clearFilters} className="text-xs md:text-sm text-gold hover:underline font-medium">امسح كل الفلاتر</button>
                     )}
                 </div>
             )}
@@ -225,75 +222,66 @@ export default function ProductsPage() {
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-20">
-                    <p className="text-muted mb-2">مفيش منتجات مطابقة للبحث</p>
-                    <button onClick={clearFilters} className="text-gold text-sm font-medium hover:underline">امسح الفلاتر</button>
+                <div className="text-center py-16 md:py-20">
+                    <p className="text-sm md:text-base text-muted mb-2">مفيش منتجات مطابقة للبحث</p>
+                    <button onClick={clearFilters} className="text-xs md:text-sm text-gold font-medium hover:underline">امسح الفلاتر</button>
                 </div>
             )}
 
             {/* ===== MOBILE BOTTOM SHEET FILTERS ===== */}
             {isFilterOpen && (
                 <div className="md:hidden fixed inset-0 z-[100] flex flex-col justify-end">
-                    {/* Backdrop */}
                     <div className="absolute inset-0 bg-charcoal/60 backdrop-blur-sm animate-fade-in" onClick={() => setIsFilterOpen(false)} />
-
-                    {/* Sheet Content */}
-                    <div className="relative bg-white w-full rounded-t-3xl shadow-2xl p-6 max-h-[85vh] overflow-y-auto animate-slide-up">
-
-                        <div className="flex items-center justify-between mb-6 pb-4 border-b border-charcoal/10">
-                            <h2 className="text-xl font-bold text-charcoal">تصفية وترتيب</h2>
-                            <button onClick={() => setIsFilterOpen(false)} className="w-8 h-8 bg-cream rounded-full flex items-center justify-center text-charcoal">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    <div className="relative bg-white w-full rounded-t-3xl shadow-2xl p-5 max-h-[85vh] overflow-y-auto animate-slide-up">
+                        <div className="flex items-center justify-between mb-5 pb-3 border-b border-charcoal/10">
+                            <h2 className="text-lg font-bold text-charcoal">تصفية وترتيب</h2>
+                            <button onClick={() => setIsFilterOpen(false)} className="w-7 h-7 bg-cream rounded-full flex items-center justify-center text-charcoal">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                             </button>
                         </div>
 
-                        <div className="space-y-6">
-                            {/* Categories */}
+                        <div className="space-y-5">
                             <div>
-                                <h3 className="text-sm font-bold text-charcoal mb-3">الفئات</h3>
+                                <h3 className="text-xs font-bold text-charcoal mb-2.5">الفئات</h3>
                                 <div className="flex flex-wrap gap-2">
                                     {categories.map((cat) => (
-                                        <button key={cat.value} onClick={() => setCategory(cat.value)} className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${category === cat.value ? "bg-charcoal text-cream" : "bg-cream text-charcoal/70 border border-charcoal/10"}`}>
+                                        <button key={cat.value} onClick={() => setCategory(cat.value)} className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-colors ${category === cat.value ? "bg-charcoal text-cream" : "bg-cream text-charcoal/70 border border-charcoal/10"}`}>
                                             {cat.label}
                                         </button>
                                     ))}
                                 </div>
                             </div>
 
-                            {/* Sort */}
                             <div>
-                                <h3 className="text-sm font-bold text-charcoal mb-3">الترتيب</h3>
-                                <div className="flex flex-col gap-2">
+                                <h3 className="text-xs font-bold text-charcoal mb-2.5">الترتيب</h3>
+                                <div className="flex flex-col gap-1.5">
                                     {sortOptions.map((opt) => (
-                                        <button key={opt.value} onClick={() => setSortBy(opt.value)} className={`flex items-center justify-between p-3 rounded-lg border text-sm transition-colors ${sortBy === opt.value ? "border-gold bg-gold/5 text-charcoal font-medium" : "border-charcoal/10 text-muted"}`}>
+                                        <button key={opt.value} onClick={() => setSortBy(opt.value)} className={`flex items-center justify-between p-2.5 rounded-lg border text-xs transition-colors ${sortBy === opt.value ? "border-gold bg-gold/5 text-charcoal font-medium" : "border-charcoal/10 text-muted"}`}>
                                             {opt.label}
-                                            {sortBy === opt.value && <div className="w-3 h-3 rounded-full bg-gold" />}
+                                            {sortBy === opt.value && <div className="w-2.5 h-2.5 rounded-full bg-gold" />}
                                         </button>
                                     ))}
                                 </div>
                             </div>
 
-                            {/* Price */}
                             <div>
-                                <h3 className="text-sm font-bold text-charcoal mb-3">السعر</h3>
-                                <div className="flex flex-col gap-2">
+                                <h3 className="text-xs font-bold text-charcoal mb-2.5">السعر</h3>
+                                <div className="flex flex-col gap-1.5">
                                     {priceOptions.map((opt) => (
-                                        <button key={opt.value} onClick={() => setPriceRange(opt.value)} className={`flex items-center justify-between p-3 rounded-lg border text-sm transition-colors ${priceRange === opt.value ? "border-gold bg-gold/5 text-charcoal font-medium" : "border-charcoal/10 text-muted"}`}>
+                                        <button key={opt.value} onClick={() => setPriceRange(opt.value)} className={`flex items-center justify-between p-2.5 rounded-lg border text-xs transition-colors ${priceRange === opt.value ? "border-gold bg-gold/5 text-charcoal font-medium" : "border-charcoal/10 text-muted"}`}>
                                             {opt.label}
-                                            {priceRange === opt.value && <div className="w-3 h-3 rounded-full bg-gold" />}
+                                            {priceRange === opt.value && <div className="w-2.5 h-2.5 rounded-full bg-gold" />}
                                         </button>
                                     ))}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Apply Button */}
-                        <div className="mt-8 pt-4 border-t border-charcoal/10 sticky bottom-0 bg-white">
-                            <button onClick={() => setIsFilterOpen(false)} className="w-full bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-14 rounded-lg transition-colors shadow-lg">
+                        <div className="mt-6 pt-3 border-t border-charcoal/10 sticky bottom-0 bg-white">
+                            <button onClick={() => setIsFilterOpen(false)} className="w-full bg-charcoal hover:bg-gold text-cream hover:text-charcoal font-semibold h-12 rounded-lg transition-colors shadow-lg text-sm">
                                 عرض النتائج ({filteredProducts.length})
                             </button>
                         </div>
-
                     </div>
                 </div>
             )}
