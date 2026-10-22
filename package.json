@@ -17,7 +17,6 @@
     "@types/bcryptjs": "^2.4.6",
     "@upstash/ratelimit": "^2.2.0",
     "@upstash/redis": "^1.39.0",
-    "@vercel/edge-config": "^1.5.1",
     "bcryptjs": "^3.0.3",
     "cmdk": "^1.1.1",
     "file-type": "^22.2.0",
