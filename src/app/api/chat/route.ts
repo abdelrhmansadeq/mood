@@ -7,8 +7,22 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export async function POST(request: Request) {
     try {
+        // ✅ 1. الحل الذكي للـ Rate Limit
+        let userId: string | null = null;
+        const authHeader = request.headers.get("authorization");
+        const token = authHeader?.replace("Bearer ", "");
+
+        if (token) {
+            const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
+            if (!authError && authUser) {
+                userId = authUser.id;
+            }
+        }
+
         const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-        const { success } = await chatRatelimit.limit(ip);
+        const identifier = userId ? `user_${userId}` : `ip_${ip}`;
+
+        const { success } = await chatRatelimit.limit(identifier);
         if (!success) {
             return NextResponse.json({ error: "بعت رسائل كتير جداً، استنى دقيقة وجرب تاني." }, { status: 429 });
         }
@@ -62,14 +76,13 @@ ${productList}`;
         });
 
         const result = await ai.models.generateContent({
-            model: "gemini-3.6-flash", // ✅ تركناها زي ما هي
+            model: "gemini-3.6-flash",
             contents: formattedHistory,
             config: {
                 systemInstruction: systemPrompt,
             }
         });
 
-        // ✅ إصلاح 1: بدل ما نرمي Error، بنرجع Response مباشرة
         if (!result || !result.text) {
             return NextResponse.json(
                 { error: "حدث خطأ في الاتصال بالمساعد الذكي. يرجى المحاولة لاحقاً." },
@@ -78,7 +91,7 @@ ${productList}`;
         }
 
         return NextResponse.json({ reply: result.text });
-    } catch (error: unknown) { // ✅ إصلاح 2: غيرنا any لـ unknown
+    } catch (error: unknown) {
         console.error("Gemini API error:", error);
         return NextResponse.json(
             { error: "حدث خطأ في الاتصال بالمساعد الذكي. يرجى المحاولة لاحقاً." },

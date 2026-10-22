@@ -39,10 +39,26 @@ type SupabaseProduct = {
 
 export async function POST(request: Request) {
     try {
-        // 1. Rate Limit (Fail-Open)
+        // ✅ 1. التحقق من المستخدم أولاً (عشان نعرف نعمل Rate Limit بالـ ID)
+        let userId: string | null = null;
+        let userEmail = "";
+        const authHeader = request.headers.get("authorization");
+        const token = authHeader?.replace("Bearer ", "");
+
+        if (token) {
+            const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
+            if (!authError && authUser) {
+                userId = authUser.id;
+                userEmail = authUser.email || "";
+            }
+        }
+
+        // ✅ 2. الحل الذكي للـ Rate Limit (المسجل بالـ ID والزائر بالـ IP)
         try {
             const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-            const { success } = await orderRatelimit.limit(ip);
+            const identifier = userId ? `user_${userId}` : `ip_${ip}`;
+
+            const { success } = await orderRatelimit.limit(identifier);
             if (!success) {
                 return NextResponse.json({ error: "بعت طلبات كتير جداً، استنى شوية وجرب تاني." }, { status: 429 });
             }
@@ -58,20 +74,7 @@ export async function POST(request: Request) {
         }
 
         const { fullName, phone, email, city, address, notes, items, couponCode } = validation.data;
-
-        // 2. التحقق من المستخدم
-        let userId: string | null = null;
-        let userEmail = email || "";
-        const authHeader = request.headers.get("authorization");
-        const token = authHeader?.replace("Bearer ", "");
-
-        if (token) {
-            const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
-            if (!authError && authUser) {
-                userId = authUser.id;
-                userEmail = authUser.email || email || "";
-            }
-        }
+        userEmail = userEmail || email || ""; // نحدث الإيميل لو المستخدم كتبه في الفورم
 
         // 3. دمج المنتجات المكررة في السلة
         const mergedItemsMap = new Map<string, typeof items[0]>();
@@ -106,7 +109,7 @@ export async function POST(request: Request) {
 
             const hasColors = product.colors && product.colors.length > 0;
             if (hasColors) {
-                const color = product.colors.find((c: { name: string }) => c.name === item.color); // ✅ حل مشكلة c
+                const color = product.colors.find((c: { name: string }) => c.name === item.color);
                 if (!color) return NextResponse.json({ error: `اللون "${item.color}" غير متوفر` }, { status: 400 });
                 const sizeStock = color.sizes?.[item.size] || 0;
                 if (sizeStock < item.quantity) return NextResponse.json({ error: `"${product.name}" مقاس ${item.size}: متاح ${sizeStock} بس` }, { status: 400 });
@@ -124,7 +127,7 @@ export async function POST(request: Request) {
             const hasColors = product.colors && product.colors.length > 0;
             let finalImage = product.image || "";
             if (hasColors) {
-                const color = product.colors.find((c: { name: string }) => c.name === item.color); // ✅ حل مشكلة c
+                const color = product.colors.find((c: { name: string }) => c.name === item.color);
                 if (color && color.image) finalImage = color.image;
             }
 
@@ -258,7 +261,6 @@ export async function POST(request: Request) {
 
             // 10. تحديث المبيعات
             for (const item of enrichedItems) {
-                // ✅ حل مشكلة catch: استخدمنا try/catch بدل .catch() المباشرة
                 try {
                     await supabaseAdmin.rpc("increment_sold_count", { p_product_id: item.productId, p_quantity: item.quantity });
                 } catch (err) {
@@ -269,13 +271,11 @@ export async function POST(request: Request) {
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : "فشل إتمام الطلب";
 
-            // 🚨 ROLLBACK: إرجاع المخزون
             for (const deducted of deductedItems) {
                 if (deducted.hasColors) await supabaseAdmin.rpc("increase_product_color_stock", { p_product_id: deducted.productId, p_color_name: deducted.color, p_size: deducted.size, p_quantity: deducted.quantity });
                 else await supabaseAdmin.rpc("increase_product_size_stock", { p_product_id: deducted.productId, p_size: deducted.size, p_quantity: deducted.quantity });
             }
 
-            // إرجاع الكوبون
             if (couponIncremented && validCoupon) {
                 await supabaseAdmin
                     .from("coupons")
@@ -296,13 +296,13 @@ export async function POST(request: Request) {
 
         if (userEmail) {
             sendEmail({ to: userEmail, toName: fullName, subject: `تأكيد طلبك ${finalOrder.order_number} - Mood`, htmlContent: buildCustomerOrderEmail(emailData) })
-                .catch((err: unknown) => console.error("Customer email failed:", err)); // ✅ حل مشكلة err
+                .catch((err: unknown) => console.error("Customer email failed:", err));
         }
 
         const adminEmail = process.env.BREVO_ADMIN_EMAIL;
         if (adminEmail) {
             sendEmail({ to: adminEmail, toName: "Mood Admin", subject: `🔔 طلب جديد: ${finalOrder.order_number}`, htmlContent: buildAdminOrderEmail(emailData, userEmail || "زائر") })
-                .catch((err: unknown) => console.error("Admin email failed:", err)); // ✅ حل مشكلة err
+                .catch((err: unknown) => console.error("Admin email failed:", err));
         }
 
         return NextResponse.json({ order: finalOrder });
